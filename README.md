@@ -31,8 +31,16 @@ or local
 
 ```bash
 pip install lxml && pip install pyopenssl && pip install Scrapy
+scrapy runspider gocardless_crawler/generate_start_urls.py --output output/google_urls.json
 scrapy runspider gocardless_crawler/crawler.py --output output/gocardless.json
 ```
+
+And please check the result in `output/gocardless.json` file.
+
+
+Performance
+----------------------------------
+1. network ...
 
 
 Helpful resources

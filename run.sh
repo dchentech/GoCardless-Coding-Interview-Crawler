@@ -40,5 +40,3 @@ fi
 
 new_section "Begin to run crawler ..."
 echo_run "docker-compose up"
-
-echo_run "cat output/gocardless.json"

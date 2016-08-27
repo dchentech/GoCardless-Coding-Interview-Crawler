@@ -5,7 +5,7 @@ import pdb
 
 
 class GoCardlessWebsiteCrawler(scrapy.Spider):
-    name = 'GoCardless'
+    name = 'GoCardless assets sitemap'
     allowed_domains = ["gocardless.com"]
     start_urls = [
         # Explicit indexes which are provided by GoCardless
@@ -14,8 +14,6 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
         # sitemap.xml
         'http://gocardless.com',
     ]
-
-    html_attrs = ['link', 'a']
 
     def parse(self, response):
         for item in self.parse_gocardless_statis_assets(response):
@@ -58,3 +56,4 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
 
 # TODO extract image/assets from
 # https://gocardless.com/bundle/main-22d1be7d280524ff318e.css
+# TODO map url => assets
