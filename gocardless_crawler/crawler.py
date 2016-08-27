@@ -1,34 +1,42 @@
 # -*-coding:utf-8-*-
 
 import scrapy
-import pdb
+from scrapy.http.request import Request
+import urllib2
+from bs4 import BeautifulSoup
 
 
 class GoCardlessWebsiteCrawler(scrapy.Spider):
     name = 'GoCardless assets sitemap'
     allowed_domains = ["gocardless.com"]
+
     start_urls = [
-        # Explicit indexes which are provided by GoCardless
-        'https://gocardless.com/sitemap.xml',
         # The portal, make sure we could access pages that maybe missed in
         # sitemap.xml
         'http://gocardless.com',
     ]
 
-    def parse(self, response):
-        for item in self.parse_gocardless_statis_assets(response):
-            yield item
+    def start_requests(self):
+        # Explicit indexes which are provided by GoCardless
+        sitemap_xml = 'https://gocardless.com/sitemap.xml'
 
-        if False:
-            pdb.set_trace()
+        soup = BeautifulSoup(urllib2.urlopen(sitemap_xml))
+        urls = [loc.text for loc in soup.select("loc")]
+
+        for url in urls:
+            yield Request(url, self.parse)
+
+    def parse(self, response):
+        for item in self.parse_gocardless_static_assets(response):
+            yield item
 
         for href in response.css('a'):
             full_url = response.urljoin(href.select("@href").extract_first())
             yield scrapy.Request(
                 full_url,
-                callback=self.parse_gocardless_statis_assets)
+                callback=self.parse_gocardless_static_assets)
 
-    def parse_gocardless_statis_assets(self, response):
+    def parse_gocardless_static_assets(self, response):
         for img in response.css("img"):
             yield {"url": response.url,
                    "type": "image",
@@ -39,7 +47,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             path = link.select('@href').extract_first()
             item = {"url": response.url, "path": path}
             if rel == "icon":
-                item["type"] = "image/link"
+                item["type"] = "image"
                 yield item
             if rel == "stylesheet":
                 item["type"] = "css"
@@ -50,10 +58,3 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             if not path_js:  # skip text/javascript
                 continue
             yield {"url": response.url, "type": "js", "path": path_js}
-
-    def parse_inner_links(self):
-        pass
-
-# TODO extract image/assets from
-# https://gocardless.com/bundle/main-22d1be7d280524ff318e.css
-# TODO map url => assets

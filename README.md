@@ -30,8 +30,7 @@ How to run it?
 or local
 
 ```bash
-pip install lxml && pip install pyopenssl && pip install Scrapy
-scrapy runspider gocardless_crawler/crawler.py --output output/gocardless.json
+./docker-entrypoint.sh
 ```
 
 And please check the result in `output/gocardless.json` file.
@@ -40,6 +39,12 @@ And please check the result in `output/gocardless.json` file.
 Performance
 ----------------------------------
 1. network ...
+2. url size, asset items size
+
+
+TODO
+----------------------------------
+* extract image/assets from https://gocardless.com/bundle/main-22d1be7d280524ff318e.css
 
 
 Helpful resources
