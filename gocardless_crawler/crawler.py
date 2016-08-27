@@ -15,6 +15,18 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
     html_attrs = ['link', 'a']
 
     def parse(self, response):
+        for item in self.parse_gocardless_statis_assets(response):
+            yield item
+
+        if False:
+            pdb.set_trace()
+            for href in response.css('a'):
+                full_url = response.urljoin(href.extract())
+                yield scrapy.Request(
+                    full_url,
+                    callback=self.parse_gocardless_statis_assets)
+
+    def parse_gocardless_statis_assets(self, response):
         for img in response.css("img"):
             yield {"url": response.url,
                    "type": "image",
@@ -37,20 +49,6 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             if path_js.startswith("//"):  # skip another website's assets
                 continue
             yield {"url": response.url, "type": "js", "path": path_js}
-
-        if False:
-            pdb.set_trace()
-            for href in response.css('a'):
-                full_url = response.urljoin(href.extract())
-                yield scrapy.Request(
-                    full_url,
-                    callback=self.parse_gocardless_statis_assets)
-
-    def parse_gocardless_statis_assets(self, response):
-        # for img in response.css("img"):
-        #    yield {"type": "img", "url": img.url}
-        for link in response.css("link"):
-            yield {"type": "link", "url": link.url}
 
     def parse_inner_links(self):
         pass
