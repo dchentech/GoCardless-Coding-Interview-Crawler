@@ -8,8 +8,11 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
     name = 'GoCardless'
     allowed_domains = ["gocardless.com"]
     start_urls = [
+        # Explicit indexes which are provided by GoCardless
+        'https://gocardless.com/sitemap.xml',
+        # The portal, make sure we could access pages that maybe missed in
+        # sitemap.xml
         'http://gocardless.com',
-        # 'https://gocardless.com/sitemap.xml'
     ]
 
     html_attrs = ['link', 'a']
@@ -20,11 +23,12 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
 
         if False:
             pdb.set_trace()
-            for href in response.css('a'):
-                full_url = response.urljoin(href.extract())
-                yield scrapy.Request(
-                    full_url,
-                    callback=self.parse_gocardless_statis_assets)
+
+        for href in response.css('a'):
+            full_url = response.urljoin(href.select("@href").extract_first())
+            yield scrapy.Request(
+                full_url,
+                callback=self.parse_gocardless_statis_assets)
 
     def parse_gocardless_statis_assets(self, response):
         for img in response.css("img"):
@@ -38,15 +42,14 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             item = {"url": response.url, "path": path}
             if rel == "icon":
                 item["type"] = "image/link"
+                yield item
             if rel == "stylesheet":
                 item["type"] = "css"
-            yield item
+                yield item
 
         for script in response.css("script"):
             path_js = script.select('@src').extract_first()
             if not path_js:  # skip text/javascript
-                continue
-            if path_js.startswith("//"):  # skip another website's assets
                 continue
             yield {"url": response.url, "type": "js", "path": path_js}
 
