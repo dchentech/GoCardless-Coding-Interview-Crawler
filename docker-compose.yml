@@ -1,0 +1,5 @@
+gocardless_interview_201608:
+  container_name: "gocardless_interview_201608"
+  build: .
+  volumes:
+    - .:/deploy/gocardless_interview_201608
