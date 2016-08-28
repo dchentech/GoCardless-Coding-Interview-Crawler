@@ -17,13 +17,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
     ]
 
     def start_requests(self):
-        # Explicit indexes which are provided by GoCardless
-        sitemap_xml = 'https://gocardless.com/sitemap.xml'
-
-        soup = BeautifulSoup(urllib2.urlopen(sitemap_xml))
-        urls = [loc.text for loc in soup.select("loc")]
-
-        for url in urls:
+        for url in self.sitemap_urls:
             yield Request(url, self.parse)
 
     def parse(self, response):
@@ -58,3 +52,11 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             if not path_js:  # skip text/javascript
                 continue
             yield {"url": response.url, "type": "js", "path": path_js}
+
+    @property
+    def sitemap_urls(self):
+        # Explicit indexes which are provided by GoCardless
+        sitemap_xml = 'https://gocardless.com/sitemap.xml'
+
+        soup = BeautifulSoup(urllib2.urlopen(sitemap_xml))
+        return [loc.text for loc in soup.select("loc")]
