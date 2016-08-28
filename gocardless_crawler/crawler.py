@@ -58,5 +58,5 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
         # Explicit indexes which are provided by GoCardless
         sitemap_xml = 'https://gocardless.com/sitemap.xml'
 
-        soup = BeautifulSoup(urllib2.urlopen(sitemap_xml))
+        soup = BeautifulSoup(urllib2.urlopen(sitemap_xml), "lxml")
         return [loc.text for loc in soup.select("loc")]
