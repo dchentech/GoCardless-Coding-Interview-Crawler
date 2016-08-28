@@ -11,7 +11,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
     allowed_domains = ["gocardless.com"]
 
     start_urls = [
-        # The portal, make sure we could access pages that maybe missed in
+        # The portal. Make sure we could access pages that maybe missed in
         # sitemap.xml
         'http://gocardless.com',
     ]

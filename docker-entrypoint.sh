@@ -4,7 +4,7 @@ RESULT_JSON=output/result.json
 SCRAPY_OUTPUT_JSON=output/scrapy_gocardless.json
 
 
-rm -f output/gocardless.json
+rm -f $SCRAPY_OUTPUT_JSON
 
 pip install -r requirements.txt
 
