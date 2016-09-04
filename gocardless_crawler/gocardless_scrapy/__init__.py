@@ -1,5 +1,7 @@
 # -*-coding:utf-8-*-
 
+import os
+import sys
 from .spider import Spider
 from .http_request import Request
 from Queue import Queue
@@ -9,7 +11,8 @@ import time
 class scrapy(object):
     Spider = Spider
     thread_count = 10
-    thread_sleep_time = 10 * 0.001
+    thread_sleep_seconds = 10 * 0.001
+    thread_check_queue_finished_seconds = 3
 
     @classmethod
     def run(cls, crawler_recipe):
@@ -21,7 +24,7 @@ class scrapy(object):
             print "[thread %s] starts ..." % threading.current_thread().name
 
             while True:
-                time.sleep(scrapy.thread_sleep_time)
+                time.sleep(scrapy.thread_sleep_seconds)
                 if not job_queue.empty():
                     item = job_queue.get()
                     print "item: ", item  # process item
@@ -39,18 +42,23 @@ class scrapy(object):
         for idx in xrange(cls.thread_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=worker, args=(job_queue,))
-            # t.daemon = True
             t.start()
 
         print "3. Use a single thread to get all urls ..."
         for url in instance.start_urls:
             job_queue.put(Request(url, instance.parse))
-
         for request in instance.start_requests():
             job_queue.put(request)
+        assert job_queue.qsize() != 0
 
-        job_queue.join()  # block until all tasks are done
+        # job_queue.join()  # block until all tasks are done
 
+        while True:
+            time.sleep(scrapy.thread_check_queue_finished_seconds)
+            # If we process the last item, then exit.
+            if job_queue.empty():
+                print "[thread %s] exits ..." % threading.current_thread().name
+                os._exit(0)
 
 # TODO dead link
 
