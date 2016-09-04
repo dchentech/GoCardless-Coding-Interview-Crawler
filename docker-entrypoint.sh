@@ -1,14 +1,22 @@
 #!/bin/bash
 
-RESULT_JSON=output/result.json
-SCRAPY_OUTPUT_JSON=output/scrapy_gocardless.json
+set -e
+
+export RESULT_JSON="output/result.json"
+export SCRAPY_OUTPUT_JSON="output/scrapy_gocardless.json"
+export USE_GOCARDLESS_VERSION_SCRAPY="true"
 
 
+# Clean previous result
 rm -f $SCRAPY_OUTPUT_JSON
+rm -f $RESULT_JSON
 
+# Run unittests
 pip install -U tox
 tox
 
+exit 0
+# Run spider to collect links data
 if [[ $USE_GOCARDLESS_VERSION_SCRAPY == "true" ]]; then
   echo "Use GoCardless demo version of Scrapy ..."
   ./bin/gocardless_scrapy.py --output $SCRAPY_OUTPUT_JSON
@@ -17,4 +25,5 @@ else
   scrapy runspider gocardless_crawler/crawler.py --output $SCRAPY_OUTPUT_JSON
 fi
 
+# Generate the report
 ./bin/clean_result.py $SCRAPY_OUTPUT_JSON $RESULT_JSON

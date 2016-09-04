@@ -2,3 +2,7 @@
 *.pyc
 .DS_Store
 .tox
+
+build/
+dist/
+gocardless_crawler.egg-info/
