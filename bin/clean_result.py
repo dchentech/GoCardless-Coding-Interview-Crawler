@@ -12,8 +12,9 @@ RESULT_JSON = sys.argv[2]
 
 
 if not os.path.isfile(SCRAPY_OUTPUT_JSON):
-    raise "Please run ./docker-entrypoint.sh to create %s first ..." % \
-        SCRAPY_OUTPUT_JSON
+    msg = "Please run ./docker-entrypoint.sh to create %s first ..." % \
+          SCRAPY_OUTPUT_JSON
+    raise Exception(msg)
 
 
 def convert_to_map(items):
