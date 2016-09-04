@@ -2,17 +2,19 @@
 
 import os
 import sys
-from .spider import Spider
-from .http_request import Request
+import copy
 from Queue import Queue
 import threading
+from multiprocessing import RawValue, Lock
 import time
 from urllib2 import HTTPError
 import socket
+from .spider import Spider
+from .http_request import Request
 
 # TODO maybe use external memcached service
-global url_processed_mark
-url_processed_mark = dict()
+global url_added_mark
+url_added_mark = dict()
 
 
 class scrapy(object):
@@ -44,6 +46,9 @@ class scrapy(object):
 
         self.debug = False
 
+        self.urls_total_counter = Counter(0)
+        self.assets_in_every_url_total_counter = Counter(0)
+
     def process(self):
         self.start_worker_threads()
         self.fetch_init_urls()
@@ -57,9 +62,10 @@ class scrapy(object):
 
     def put(self, request, force=False):
         """ Remove duplicated request.  """
-        if (not force) and (request.url not in url_processed_mark):
+        if (not force) and (request.url not in url_added_mark):
             self.job_queue.put(request)
-            url_processed_mark[request.url] = True
+            url_added_mark[request.url] = True
+            self.urls_total_counter.increment()
         else:
             if self.debug:
                 print request.url + " is already in the queue, and maybe " \
@@ -90,7 +96,14 @@ class scrapy(object):
 
             if previous_queue_count == self.job_queue.qsize():
                 # NOTE to find out why not peak the queue
-                print "current queue: %s" % self.job_queue
+                print "current queue: %s" % self.inspect_queue(self.job_queue)
+
+    def inspect_queue(self, q1):
+        q2 = copy.deepcopy(q1)
+        l2 = list()
+        while not q2.empty():
+            l2.append(q2.get())
+        return "queue:%s: %s" % (q1, l2)
 
     def start_worker_threads(self):
         print "Create %s threads ..." % self.thread_count
@@ -102,22 +115,32 @@ class scrapy(object):
 
     def continue_or_drop_item(self, item2):
         if isinstance(item2, Request):
+            # Ignore other domain urls
             if Request.is_gocardless(item2):
                 self.put(item2)
         else:
+            self.assets_in_every_url_total_counter.increment()
             self.output.put(item2)
 
     def __repr__(self):
-        return "Current queue size is %s. " \
-               "And output size is %s, and error size is %s. " \
-               "And threads count is %s.\n" % \
+        return "\n\n==============================\n" \
+               "Current queue size: %s\n" \
+               "output size: %s\n" \
+               "error size: %s\n" \
+               "threads count:  %s\n"  \
+               "urls_total_counter: %s\n" \
+               "assets_in_every_url_total_counter: %s\n" % \
                (self.job_queue.qsize(),
-                self.output.qsize(), self.errors.qsize(),
-                threading.active_count())
+                self.output.qsize(),
+                self.errors.qsize(),
+                threading.active_count(),
+                self.urls_total_counter,
+                self.assets_in_every_url_total_counter)
 
     def worker_func(self):
         def worker(master):
-            print "[thread %s] starts ..." % threading.current_thread().name
+            thread_info = "[thread %s] " % threading.current_thread().name
+            print thread_info + "starts ..."
 
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
@@ -136,7 +159,27 @@ class scrapy(object):
                         except (socket.timeout, ) as e1:
                             master.put_again(item)
                         except:
+                            print thread_info + "exits ..."
                             sys.exit()
         return worker
+
+
+# http://stackoverflow.com/questions/35088139/how-to-make-a-thread-safe-global-counter-in-python
+class Counter(object):
+    def __init__(self, value=0):
+        # RawValue because we don't need it to create a Lock:
+        self.val = RawValue('i', value)
+        self.lock = Lock()
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    def value(self):
+        with self.lock:
+            return self.val.value
+
+    def __repr__(self):
+        return str(self.val)
 
 __all__ = ['scrapy', 'Request']
