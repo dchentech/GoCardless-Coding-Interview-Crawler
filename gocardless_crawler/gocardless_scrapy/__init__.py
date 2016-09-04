@@ -39,7 +39,6 @@ class scrapy(object):
         self.job_queue = Queue()  # It's thread-safe
         self.output = Queue()
         self.errors = Queue()
-        self.previous_queue_size = 0
 
         self.crawler = self.crawler_recipe()
 
@@ -77,6 +76,9 @@ class scrapy(object):
     def check_if_job_is_done(self):
         while True:
             time.sleep(scrapy.thread_check_queue_finished_seconds)
+
+            print "master: %s" % self
+
             # If we process the last item, then exit.
             if self.job_queue.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
@@ -98,10 +100,10 @@ class scrapy(object):
             self.output.put(item2)
 
     def __repr__(self):
-        return "Current queue size is %s and previous was %s. " \
+        return "Current queue size is %s. " \
                "And output size is %s, and error size is %s. " \
                "And threads count is %s.\n" % \
-               (self.job_queue.qsize(), self.previous_queue_size,
+               (self.job_queue.qsize(),
                 self.output.qsize(), self.errors.qsize(),
                 threading.active_count())
 
@@ -111,8 +113,6 @@ class scrapy(object):
 
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
-
-                master.previous_queue_size = master.job_queue.qsize()
 
                 if not master.job_queue.empty():
                     item = master.job_queue.get()
@@ -129,8 +129,6 @@ class scrapy(object):
                             master.put_again(item)
                         except:
                             sys.exit()
-
-                    print "master: ", master
         return worker
 
 __all__ = ['scrapy', 'Request']
