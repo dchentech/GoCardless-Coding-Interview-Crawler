@@ -14,7 +14,7 @@ setup(
         'lxml',
         'pyopenssl',
         'Scrapy',
-        'beautifulsoup4'
+        'beautifulsoup4',
     ],
     scripts=[
         'bin/clean_result.py',
