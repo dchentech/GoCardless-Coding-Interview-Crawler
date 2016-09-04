@@ -24,7 +24,7 @@ class scrapy(object):
     Spider = Spider
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
-    thread_count = 30
+    thread_count = 90
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
@@ -72,7 +72,14 @@ class scrapy(object):
     def put(self, request, force=False):
         """ Remove duplicated request.  """
         if (not force) and (request.url not in url_added_mark):
-            UrlItem.create(**{"url": request.url})
+            while True:
+                try:
+                    UrlItem.create(**{"url": request.url})
+                    break
+                except OperationalError:
+                    time.sleep(self.thread_sleep_seconds)
+                    pass
+
             url_added_mark[request.url] = True
             self.urls_total_counter.increment()
         else:
@@ -114,7 +121,7 @@ class scrapy(object):
         for idx in xrange(self.thread_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=self.worker_func(),
-                                 args=(self, ))
+                                 args=(self, idx + 1, ))
             t.start()
 
     def continue_or_drop_item(self, item2):
@@ -175,9 +182,12 @@ class scrapy(object):
             raise
 
     def worker_func(self):
-        def worker(master):
+        def worker(master, wait_seconds):
             thread_info = "[thread %s] " % threading.current_thread().name
             print thread_info + "starts ..."
+
+            # NOTE avoid sqlite db lock at init time.
+            time.sleep(wait_seconds)
 
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
