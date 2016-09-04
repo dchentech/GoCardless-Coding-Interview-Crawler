@@ -26,8 +26,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             yield Request(url, self.parse)
 
     def parse(self, response):
-        for item in self.parse_gocardless_static_assets(response):
-            yield item
+        yield self.parse_gocardless_static_assets(response)
 
         for href in response.css('a'):
             full_url = response.urljoin(href.xpath("@href").extract_first())
@@ -36,27 +35,27 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
                 callback=self.parse_gocardless_static_assets)
 
     def parse_gocardless_static_assets(self, response):
+        assets = {"image": [], "css": [], "js": []}
+        result = {"url": response.url, "assets": assets}
+
         for img in response.css("img"):
-            yield {"url": response.url,
-                   "type": "image",
-                   "path": img.xpath('@src').extract_first()}
+            assets["image"].append(img.xpath('@src').extract_first())
 
         for link in response.css("link"):
             rel = link.xpath("@rel").extract_first()
             path = link.xpath('@href').extract_first()
-            item = {"url": response.url, "path": path}
             if rel == "icon":
-                item["type"] = "image"
-                yield item
+                assets["image"].append(path)
             if rel == "stylesheet":
-                item["type"] = "css"
-                yield item
+                assets["css"].append(path)
 
         for script in response.css("script"):
             path_js = script.xpath('@src').extract_first()
             if not path_js:  # skip text/javascript
                 continue
-            yield {"url": response.url, "type": "js", "path": path_js}
+            assets["js"].append(path_js)
+
+        return result
 
     @property
     def sitemap_urls(self):

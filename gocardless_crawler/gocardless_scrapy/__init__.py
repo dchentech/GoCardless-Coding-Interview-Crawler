@@ -12,7 +12,7 @@ import socket
 import cherrypy
 from .spider import Spider
 from .http_request import Request
-from .models import UrlItem
+from .models import UrlItem, UrlAssets
 
 # TODO maybe use external memcached service
 global url_added_mark
@@ -42,7 +42,6 @@ class scrapy(object):
         # https://docs.python.org/2/library/queue.html
         # TODO maybe optimize maxsize
         # It's thread-safe
-        self.output = Queue()
         self.errors = Queue()
 
         self.crawler = self.crawler_recipe()
@@ -62,7 +61,6 @@ class scrapy(object):
         self.start_monitor_webui()
         self.check_if_job_is_done()
 
-        print "output: %s" % self.output
         print "errors: %s" % self.errors
 
     def put_again(self, request):
@@ -124,6 +122,7 @@ class scrapy(object):
         else:
             self.assets_in_every_url_total_counter.increment()
             self.output.put(item2)
+            UrlAssets.upsert(item2["url"], item2["assets"])
 
     def __repr__(self):
         return "\n\n==============================\n" \

@@ -6,7 +6,7 @@ import unittest
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, root_dir)
 from gocardless_crawler.gocardless_scrapy.http_request import Request
-from gocardless_crawler.gocardless_scrapy.models import UrlItem
+from gocardless_crawler.gocardless_scrapy.models import UrlItem, UrlAssets
 
 
 class TestGoCardlessScrapy(unittest.TestCase):
@@ -26,6 +26,7 @@ class TestGoCardlessScrapy(unittest.TestCase):
         clear_dbs()
 
         UrlItem.init_db_and_table(db_name)
+        UrlAssets.init_db_and_table(db_name)
 
         first_count = UrlItem.unfinished_count()
 
@@ -45,5 +46,11 @@ class TestGoCardlessScrapy(unittest.TestCase):
         two_items = UrlItem.read_all()
         self.assertEqual(len(two_items), 2)
         self.assertTrue(UrlItem.is_empty)
+
+        assets = {"image": [], "js": [], "css": []}
+        UrlAssets.upsert("/a", assets)
+        expected_assets = [{"url": "/a", "assets": assets}]
+        self.assertEqual(UrlAssets.select().count(), 1)
+        self.assertEqual(UrlAssets.read_all(), expected_assets)
 
         clear_dbs()
