@@ -9,6 +9,7 @@ from multiprocessing import RawValue, Lock
 import time
 from urllib2 import HTTPError
 import socket
+import cherrypy
 from .spider import Spider
 from .http_request import Request
 
@@ -52,6 +53,7 @@ class scrapy(object):
     def process(self):
         self.start_worker_threads()
         self.fetch_init_urls()
+        self.start_monitor_webui()
         self.check_if_job_is_done()
 
         print "output: %s" % self.output
@@ -167,6 +169,11 @@ class scrapy(object):
                             sys.exit()
         return worker
 
+    def start_monitor_webui(self):
+        def webui(self):
+            cherrypy.quickstart(MonitorWebui(self), "/")
+        threading.Thread(target=webui, args=(self, )).start()
+
 
 # http://stackoverflow.com/questions/35088139/how-to-make-a-thread-safe-global-counter-in-python
 class Counter(object):
@@ -185,5 +192,16 @@ class Counter(object):
 
     def __repr__(self):
         return str(self.val)
+
+
+class MonitorWebui(object):
+
+    def __init__(self, master):
+        self.master = master
+
+    @cherrypy.expose
+    def index(self):
+        return repr(self.master).replace("\n", "<br/>")
+
 
 __all__ = ['scrapy', 'Request']

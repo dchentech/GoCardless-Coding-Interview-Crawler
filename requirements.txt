@@ -3,3 +3,5 @@ pyopenssl
 Scrapy
 
 beautifulsoup4
+
+cherrypy

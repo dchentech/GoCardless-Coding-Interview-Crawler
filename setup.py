@@ -15,6 +15,7 @@ setup(
         'pyopenssl',
         'Scrapy',
         'beautifulsoup4',
+        'cherrypy',
     ],
     scripts=[
         'bin/clean_result.py',
