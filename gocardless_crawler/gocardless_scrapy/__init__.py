@@ -117,12 +117,9 @@ class scrapy(object):
                             for item2 in master.crawler.parse(item):
                                 master.continue_or_drop_item(item2)
                             master.job_queue.task_done()
-                        except HTTPError as e1:
+                        except (HTTPError, socket.timeout) as e1:
                             msg = (item, e1,)
                             master.errors.put(msg)
-                        except socket.timeout:
-                            pass
-                            # TODO redo item
                         except:
                             raise
                             os._exit(-1)
