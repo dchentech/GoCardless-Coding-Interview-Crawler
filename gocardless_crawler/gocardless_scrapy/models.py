@@ -27,8 +27,11 @@ class UrlItem(Model):
     @classmethod
     def get(cls):
         item = cls.select().where(cls.is_processed == peewee_false).first()
-        cls.update(is_processed=True).where(cls.id == item.id).execute()
-        return item
+        if item is None:
+            return None
+        else:
+            cls.update(is_processed=True).where(cls.id == item.id).execute()
+            return item
 
     @classmethod
     def read_all(cls):

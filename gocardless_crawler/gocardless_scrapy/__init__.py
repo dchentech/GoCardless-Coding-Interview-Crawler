@@ -23,11 +23,12 @@ class scrapy(object):
     Spider = Spider
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
-    # thread_count = 20
-    thread_count = 99
+    thread_count = 20
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
+
+    db_name = "gocardless.sqlite"
 
     @classmethod
     def run(cls, crawler_recipe):
@@ -52,6 +53,8 @@ class scrapy(object):
         self.assets_in_every_url_total_counter = Counter(0)
 
     def process(self):
+        UrlItem.init_db_and_table(self.db_name)
+
         self.start_worker_threads()
         self.fetch_init_urls()
         self.start_monitor_webui()
@@ -159,7 +162,7 @@ class scrapy(object):
                 time.sleep(scrapy.thread_sleep_seconds)
 
                 if not UrlItem.is_empty():
-                    item = UrlItem.get()
+                    item = Request(UrlItem.get().url)
                     if item is not None:
                         print "processing item: ", item
                         try:

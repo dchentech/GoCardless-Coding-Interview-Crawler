@@ -17,8 +17,13 @@ class TestGoCardlessScrapy(unittest.TestCase):
 
     def test_UrlItem(self):
         db_name = "tests.sqlite"
-        if os.path.isfile(db_name):
-            os.remove(db_name)
+
+        def clear_dbs():
+            if os.path.isfile(db_name):
+                os.remove(db_name)
+            if os.path.isfile("peewee.db"):
+                os.remove("peewee.db")
+        clear_dbs()
 
         UrlItem.init_db_and_table(db_name)
 
@@ -41,6 +46,4 @@ class TestGoCardlessScrapy(unittest.TestCase):
         self.assertEqual(len(two_items), 2)
         self.assertTrue(UrlItem.is_empty)
 
-        os.remove(db_name)
-        if os.path.isfile("peewee.db"):
-            os.remove("peewee.db")
+        clear_dbs()

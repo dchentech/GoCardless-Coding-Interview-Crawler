@@ -8,3 +8,4 @@ dist/
 gocardless_crawler.egg-info/
 *.db
 *.txt
+*.sqlite
