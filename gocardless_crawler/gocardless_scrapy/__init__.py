@@ -87,7 +87,7 @@ class scrapy(object):
 
             time.sleep(scrapy.thread_check_queue_finished_seconds)
 
-            print "master: %s" % self
+            print self
 
             # If we process the last item, then exit.
             if self.job_queue.empty():
@@ -99,7 +99,11 @@ class scrapy(object):
                 print "current queue: %s" % self.inspect_queue(self.job_queue)
 
     def inspect_queue(self, q1):
-        q2 = copy.deepcopy(q1)
+        try:
+            q2 = copy.deepcopy(q1)
+        except TypeError as e:
+            return str(e)
+
         l2 = list()
         while not q2.empty():
             l2.append(q2.get())
