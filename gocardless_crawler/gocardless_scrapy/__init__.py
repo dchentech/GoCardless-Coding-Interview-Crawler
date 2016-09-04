@@ -7,7 +7,7 @@ from Queue import Queue
 import threading
 from multiprocessing import RawValue, Lock
 import time
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 import socket
 import cherrypy
 from .spider import Spider
@@ -177,7 +177,9 @@ class scrapy(object):
                         except (HTTPError, ) as e1:
                             msg = (item, e1,)
                             master.errors.put(msg)
-                        except (socket.timeout, socket.error, ) as e1:
+                        except (socket.timeout, socket.error, URLError, ) \
+                                as e1:
+                            # NOTE URLError is alos timeout error.
                             master.put_again(item)
                         except:
                             print "Unexpected error:", sys.exc_info()[0]

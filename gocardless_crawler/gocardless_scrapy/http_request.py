@@ -4,7 +4,6 @@ from parsel import Selector
 import urllib2
 from six.moves.urllib.parse import urljoin as _urljoin
 from urlparse import urlparse
-import codecs
 
 
 class Request(object):
@@ -19,7 +18,7 @@ class Request(object):
 
     def read_html(self):
         content = urllib2.urlopen(self.url).read()
-        self.html = unicode(content.strip(codecs.BOM_UTF8), 'utf-8')
+        self.html = content.decode('utf-8', 'ignore')
 
     def __repr__(self):
         return "Request<url: \"" + self.url + "\">"
