@@ -30,8 +30,8 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             yield item
 
         for href in response.css('a'):
-            full_url = response.urljoin(href.select("@href").extract_first())
-            yield scrapy.Request(
+            full_url = response.urljoin(href.xpath("@href").extract_first())
+            yield Request(
                 full_url,
                 callback=self.parse_gocardless_static_assets)
 
@@ -39,11 +39,11 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
         for img in response.css("img"):
             yield {"url": response.url,
                    "type": "image",
-                   "path": img.select('@src').extract_first()}
+                   "path": img.xpath('@src').extract_first()}
 
         for link in response.css("link"):
             rel = link.xpath("@rel").extract_first()
-            path = link.select('@href').extract_first()
+            path = link.xpath('@href').extract_first()
             item = {"url": response.url, "path": path}
             if rel == "icon":
                 item["type"] = "image"
@@ -53,7 +53,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
                 yield item
 
         for script in response.css("script"):
-            path_js = script.select('@src').extract_first()
+            path_js = script.xpath('@src').extract_first()
             if not path_js:  # skip text/javascript
                 continue
             yield {"url": response.url, "type": "js", "path": path_js}

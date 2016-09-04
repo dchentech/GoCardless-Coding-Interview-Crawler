@@ -29,16 +29,25 @@ class scrapy(object):
 
         self.crawler = self.crawler_recipe()
 
+        self.url_processed_mark = dict()
+
     def process(self):
         self.start_worker_threads()
         self.fetch_init_urls()
         self.check_if_job_is_done()
 
+        print "output: %s" % self.output
+
+    def put(self, request):
+        if request.url not in self.url_processed_mark:
+            self.crawler.put(request)
+            self.url_processed_mark[request.url] = True
+
     def fetch_init_urls(self):
         for url in self.crawler.start_urls:
-            self.job_queue.put(Request(url, self.crawler.parse))
+            self.crawler.put(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
-            self.job_queue.put(request)
+            self.crawler.put(request)
         assert self.job_queue.qsize() != 0
         # job_queue.join()  # block until all tasks are done
 
@@ -74,7 +83,7 @@ class scrapy(object):
                         try:
                             for item2 in crawler.parse(item):
                                 if isinstance(item2, Request):
-                                    q.put(item2)
+                                    crawler.put(item2)
                                 else:
                                     output.put(item2)
                             q.task_done()

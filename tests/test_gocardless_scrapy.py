@@ -8,8 +8,8 @@ sys.path.insert(0, root_dir)
 from gocardless_crawler.gocardless_scrapy.http_request import Request
 
 
-class TestRequest(unittest.TestCase):
+class TestGoCardlessScrapy(unittest.TestCase):
 
-    def test_css(self):
+    def test_request(self):
         response = Request("https://gocardless.com/", lambda: True)
         self.assertTrue("GoCardless" in response.css("title").extract_first())
