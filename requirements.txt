@@ -3,5 +3,3 @@ pyopenssl
 Scrapy
 
 beautifulsoup4
-
-nose
