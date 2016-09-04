@@ -74,7 +74,11 @@ class scrapy(object):
         # job_queue.join()  # block until all tasks are done
 
     def check_if_job_is_done(self):
+        previous_queue_count = 0
+
         while True:
+            previous_queue_count = self.job_queue.qsize()
+
             time.sleep(scrapy.thread_check_queue_finished_seconds)
 
             print "master: %s" % self
@@ -83,6 +87,10 @@ class scrapy(object):
             if self.job_queue.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
+
+            if previous_queue_count == self.job_queue.qsize():
+                # NOTE to find out why not peak the queue
+                print "current queue: %s" % self.job_queue
 
     def start_worker_threads(self):
         print "Create %s threads ..." % self.thread_count
