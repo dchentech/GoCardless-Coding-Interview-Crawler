@@ -177,11 +177,11 @@ class scrapy(object):
                         except (HTTPError, ) as e1:
                             msg = (item, e1,)
                             master.errors.put(msg)
-                        except (socket.timeout, ) as e1:
+                        except (socket.timeout, socket.error, ) as e1:
                             master.put_again(item)
                         except:
-                            print thread_info + "exits ..."
-                            sys.exit()
+                            print "Unexpected error:", sys.exc_info()[0]
+                            raise
         return worker
 
     def start_monitor_webui(self):
