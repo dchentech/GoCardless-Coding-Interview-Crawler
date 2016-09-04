@@ -1,6 +1,7 @@
 # -*-coding:utf-8-*-
 
 import os
+import sys
 from .spider import Spider
 from .http_request import Request
 from Queue import Queue
@@ -52,8 +53,12 @@ class scrapy(object):
         print "output: %s" % self.output
         print "errors: %s" % self.errors
 
-    def put(self, request):
-        if request.url not in url_processed_mark:
+    def put_again(self, request):
+        self.put(request, force=True)
+
+    def put(self, request, force=False):
+        """ Remove duplicated request.  """
+        if (not force) and (request.url not in url_processed_mark):
             self.job_queue.put(request)
             url_processed_mark[request.url] = True
         else:
@@ -93,7 +98,7 @@ class scrapy(object):
             self.output.put(item2)
 
     def __repr__(self):
-        return "\nCurrent queue size is %s and previous was %s. " \
+        return "Current queue size is %s and previous was %s. " \
                "And output size is %s, and error size is %s. " \
                "And threads count is %s.\n" % \
                (self.job_queue.qsize(), self.previous_queue_size,
@@ -117,12 +122,13 @@ class scrapy(object):
                             for item2 in master.crawler.parse(item):
                                 master.continue_or_drop_item(item2)
                             master.job_queue.task_done()
-                        except (HTTPError, socket.timeout) as e1:
+                        except (HTTPError, ) as e1:
                             msg = (item, e1,)
                             master.errors.put(msg)
+                        except (socket.timeout, ) as e1:
+                            master.put_again(item)
                         except:
-                            raise
-                            os._exit(-1)
+                            sys.exit()
 
                     print "master: ", master
         return worker
