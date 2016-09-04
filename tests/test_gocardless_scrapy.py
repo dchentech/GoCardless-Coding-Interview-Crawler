@@ -25,8 +25,8 @@ class TestGoCardlessScrapy(unittest.TestCase):
                 os.remove("peewee.db")
         clear_dbs()
 
-        UrlItem.init_db_and_table(db_name)
-        UrlAssets.init_db_and_table(db_name)
+        UrlItem.init_db_and_table("sqlite", db_name)
+        UrlAssets.init_db_and_table("sqlite", db_name)
 
         first_count = UrlItem.unfinished_count()
 

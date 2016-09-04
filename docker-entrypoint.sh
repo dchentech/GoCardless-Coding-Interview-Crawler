@@ -11,11 +11,15 @@ export USE_GOCARDLESS_VERSION_SCRAPY="true"
 rm -f $SCRAPY_OUTPUT_JSON
 rm -f $RESULT_JSON
 
-# Run unittests
-pip install -U tox
-tox
 
-exit 0
+# Run unittests
+#pip install -U tox
+
+python setup.py install
+
+mysql -uroot --host mysql -p'gocardless' -e "CREATE DATABASE IF NOT EXISTS gocardless"
+
+
 # Run spider to collect links data
 if [[ $USE_GOCARDLESS_VERSION_SCRAPY == "true" ]]; then
   echo "Use GoCardless demo version of Scrapy ..."

@@ -66,12 +66,6 @@ Run in a Docker
 ./run.sh
 ```
 
-or local
-
-```bash
-./docker-entrypoint.sh
-```
-
 And please check the result in `output/result.json` file.
 
 

@@ -13,7 +13,7 @@ import cherrypy
 from peewee import IntegrityError, OperationalError
 from .spider import Spider
 from .http_request import Request
-from .models import UrlItem, UrlAssets
+from .models import UrlItem, UrlAssets, PeeweeUtils
 
 # TODO maybe use external memcached service
 global url_added_mark
@@ -49,12 +49,11 @@ class scrapy(object):
 
         self.debug = False
 
-        self.urls_total_counter = Counter(0)
-        self.assets_in_every_url_total_counter = Counter(0)
-
     def work(self):
-        UrlItem.init_db_and_table(self.db_name)
-        UrlAssets.init_db_and_table(self.db_name)
+        UrlItem.init_db_and_table("mysql", self.db_name)
+        UrlAssets.init_db_and_table("mysql", self.db_name)
+
+        self.urls_total_counter = Counter(UrlItem.finished_urls_count())
 
         for processed_url in UrlItem.finished_urls():
             url_added_mark[processed_url] = True
@@ -72,13 +71,9 @@ class scrapy(object):
     def put(self, request, force=False):
         """ Remove duplicated request.  """
         if (not force) and (request.url not in url_added_mark):
-            while True:
-                try:
-                    UrlItem.create(**{"url": request.url})
-                    break
-                except OperationalError:
-                    time.sleep(self.thread_sleep_seconds)
-                    pass
+            def func():
+                UrlItem.create(**{"url": request.url})
+            PeeweeUtils.catch_OperationalError(func)
 
             url_added_mark[request.url] = True
             self.urls_total_counter.increment()
@@ -130,7 +125,6 @@ class scrapy(object):
             if Request.is_gocardless(item2):
                 self.put(item2)
         else:
-            self.assets_in_every_url_total_counter.increment()
             UrlAssets.upsert(item2["url"], item2["assets"])
 
     def __repr__(self):
@@ -139,14 +133,12 @@ class scrapy(object):
                "output size: %s\n" \
                "error size: %s\n" \
                "threads count:  %s\n"  \
-               "urls_total_counter: %s\n" \
-               "assets_in_every_url_total_counter: %s\n" % \
+               "urls_total_counter: %s\n" % \
                (UrlItem.unfinished_count(),
                 UrlAssets.total_count(),
                 self.errors.qsize(),
                 threading.active_count(),
-                self.urls_total_counter,
-                self.assets_in_every_url_total_counter)
+                self.urls_total_counter,)
 
     def status(self):
         return "\n\n==============================\n" \
@@ -154,14 +146,12 @@ class scrapy(object):
                "output: %s\n" \
                "error: %s\n" \
                "threads count:  %s\n"  \
-               "urls_total_counter: %s\n" \
-               "assets_in_every_url_total_counter: %s\n" % \
+               "urls_total_counter: %s\n" % \
                (UrlItem.read_all(),
                 UrlAssets.read_all(),
                 self.inspect_queue(self.errors),
                 threading.active_count(),
-                self.urls_total_counter,
-                self.assets_in_every_url_total_counter)
+                self.urls_total_counter,)
 
     def process(self, item):
         print "processing item: ", item
@@ -192,11 +182,17 @@ class scrapy(object):
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
 
+                url_item = None
                 if not UrlItem.is_empty():
-                    url_item = UrlItem.get()
-                    if url_item is not None:
-                        item = Request(url_item.url)
-                        master.process(item)
+                    try:
+                        url_item = UrlItem.get()
+                    except OperationalError:
+                        pass
+
+                if url_item is not None:
+                    item = Request(url_item.url)
+                    master.process(item)
+
         return worker
 
     def start_monitor_webui(self):

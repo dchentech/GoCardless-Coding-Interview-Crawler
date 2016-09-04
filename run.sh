@@ -21,12 +21,15 @@ new_section() {
 
 
 new_section "Clear previous docker images & containers ..."
-container_name="gocardless"
-container_id=$(docker ps -a | grep "$container_name" | awk '{print $1}')
-if [[ $container_id != "" ]]; then
-  echo "[removing container]: $container_name"
-  echo_run "docker rm -f $container_id"
-fi
+remove_container() {
+  container_name=$1
+  container_id=$(docker ps -a | grep "$container_name" | awk '{print $1}')
+  if [[ $container_id != "" ]]; then
+    echo "[removing container]: $container_name"
+    echo_run "docker rm -f $container_id"
+  fi
+}
+remove_container "gocardless"
 
 if [[ $REMOVE_IMAGE == "true" ]]; then
   image_name="gocardless"
@@ -36,6 +39,10 @@ if [[ $REMOVE_IMAGE == "true" ]]; then
     echo_run "docker rmi -f $image_id"
   fi
 fi
+
+
+# remove_container "mysql"  # don't remove data
+# docker rmi -f gocardlessinterview201608_mysql
 
 
 new_section "Begin to run crawler ..."
