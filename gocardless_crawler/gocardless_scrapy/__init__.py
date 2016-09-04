@@ -38,8 +38,11 @@ class scrapy(object):
         self.job_queue = Queue()  # It's thread-safe
         self.output = Queue()
         self.errors = Queue()
+        self.previous_queue_size = 0
 
         self.crawler = self.crawler_recipe()
+
+        self.debug = False
 
     def process(self):
         self.start_worker_threads()
@@ -54,8 +57,9 @@ class scrapy(object):
             self.job_queue.put(request)
             url_processed_mark[request.url] = True
         else:
-            print request.url + " is already in the queue, and maybe " \
-                                "processed."
+            if self.debug:
+                print request.url + " is already in the queue, and maybe " \
+                                    "processed."
 
     def fetch_init_urls(self):
         for url in self.crawler.start_urls:
@@ -88,6 +92,14 @@ class scrapy(object):
         else:
             self.output.put(item2)
 
+    def __repr__(self):
+        return "\nCurrent queue size is %s and previous was %s. " \
+               "And output size is %s, and error size is %s. " \
+               "And threads count is %s.\n" % \
+               (self.job_queue.qsize(), self.previous_queue_size,
+                self.output.qsize(), self.errors.qsize(),
+                threading.active_count())
+
     def worker_func(self):
         def worker(master):
             print "[thread %s] starts ..." % threading.current_thread().name
@@ -95,7 +107,7 @@ class scrapy(object):
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
 
-                previous_queue_size = master.job_queue.qsize()
+                master.previous_queue_size = master.job_queue.qsize()
 
                 if not master.job_queue.empty():
                     item = master.job_queue.get()
@@ -115,10 +127,7 @@ class scrapy(object):
                             raise
                             os._exit(-1)
 
-                    print "Current queue size is %s and previous was %s. " \
-                          "And output size is %s, and error size is %s" % \
-                          (master.job_queue.qsize(), previous_queue_size,
-                           master.output.qsize(), master.errors.qsize())
+                    print "master: ", master
         return worker
 
 __all__ = ['scrapy', 'Request']
