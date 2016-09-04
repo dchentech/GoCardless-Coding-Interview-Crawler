@@ -88,5 +88,9 @@ class UrlAssets(Model, CommonAPI):
             result.append(item)
         return result
 
+    @classmethod
+    def total_count(cls):
+        return cls.select().count()
+
 
 __all__ = ["UrlItem", "UrlAssets"]

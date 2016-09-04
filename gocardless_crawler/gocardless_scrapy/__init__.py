@@ -10,6 +10,7 @@ import time
 from urllib2 import HTTPError, URLError
 import socket
 import cherrypy
+from peewee import IntegrityError, OperationalError
 from .spider import Spider
 from .http_request import Request
 from .models import UrlItem, UrlAssets
@@ -23,7 +24,7 @@ class scrapy(object):
     Spider = Spider
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
-    thread_count = 20
+    thread_count = 30
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
@@ -34,7 +35,7 @@ class scrapy(object):
     def run(cls, crawler_recipe):
         print "... begin to run ", crawler_recipe
         crawler = cls(crawler_recipe)
-        crawler.process()
+        crawler.work()
 
     def __init__(self, crawler_recipe):
         self.crawler_recipe = crawler_recipe
@@ -51,8 +52,10 @@ class scrapy(object):
         self.urls_total_counter = Counter(0)
         self.assets_in_every_url_total_counter = Counter(0)
 
-    def process(self):
+    def work(self):
         UrlItem.init_db_and_table(self.db_name)
+        UrlAssets.init_db_and_table(self.db_name)
+
         for processed_url in UrlItem.finished_urls():
             url_added_mark[processed_url] = True
 
@@ -121,7 +124,6 @@ class scrapy(object):
                 self.put(item2)
         else:
             self.assets_in_every_url_total_counter.increment()
-            self.output.put(item2)
             UrlAssets.upsert(item2["url"], item2["assets"])
 
     def __repr__(self):
@@ -133,7 +135,7 @@ class scrapy(object):
                "urls_total_counter: %s\n" \
                "assets_in_every_url_total_counter: %s\n" % \
                (UrlItem.unfinished_count(),
-                self.output.qsize(),
+                UrlAssets.total_count(),
                 self.errors.qsize(),
                 threading.active_count(),
                 self.urls_total_counter,
@@ -148,11 +150,29 @@ class scrapy(object):
                "urls_total_counter: %s\n" \
                "assets_in_every_url_total_counter: %s\n" % \
                (UrlItem.read_all(),
-                self.inspect_queue(self.output),
+                UrlAssets.read_all(),
                 self.inspect_queue(self.errors),
                 threading.active_count(),
                 self.urls_total_counter,
                 self.assets_in_every_url_total_counter)
+
+    def process(self, item):
+        print "processing item: ", item
+        try:
+            for item2 in self.crawler.parse(item):
+                self.continue_or_drop_item(item2)
+        except (HTTPError, ) as e1:
+            msg = (item, e1,)
+            self.errors.put(msg)
+        except (socket.timeout, socket.error, URLError, ):
+            # NOTE URLError is alos timeout error.
+            self.put_again(item)
+        except (IntegrityError, OperationalError):
+            # ignore peewee errors
+            pass
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
+            raise
 
     def worker_func(self):
         def worker(master):
@@ -166,20 +186,7 @@ class scrapy(object):
                     url_item = UrlItem.get()
                     if url_item is not None:
                         item = Request(url_item.url)
-                        print "processing item: ", item
-                        try:
-                            for item2 in master.crawler.parse(item):
-                                master.continue_or_drop_item(item2)
-                        except (HTTPError, ) as e1:
-                            msg = (item, e1,)
-                            master.errors.put(msg)
-                        except (socket.timeout, socket.error, URLError, ) \
-                                as e1:
-                            # NOTE URLError is alos timeout error.
-                            master.put_again(item)
-                        except:
-                            print "Unexpected error:", sys.exc_info()[0]
-                            raise
+                        master.process(item)
         return worker
 
     def start_monitor_webui(self):
