@@ -9,7 +9,7 @@ import time
 
 class scrapy(object):
     Spider = Spider
-    thread_count = 10
+    thread_count = 1
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
 
