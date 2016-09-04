@@ -25,8 +25,9 @@ class scrapy(object):
         # https://docs.python.org/2/library/queue.html
         # TODO maybe optimize maxsize
         self.job_queue = Queue()  # It's thread-safe
+        self.output = Queue()
 
-        self.instance = self.crawler_recipe()
+        self.crawler = self.crawler_recipe()
 
     def process(self):
         self.start_worker_threads()
@@ -34,9 +35,9 @@ class scrapy(object):
         self.check_if_job_is_done()
 
     def fetch_init_urls(self):
-        for url in self.instance.start_urls:
-            self.job_queue.put(Request(url, self.instance.parse))
-        for request in self.instance.start_requests():
+        for url in self.crawler.start_urls:
+            self.job_queue.put(Request(url, self.crawler.parse))
+        for request in self.crawler.start_requests():
             self.job_queue.put(request)
         assert self.job_queue.qsize() != 0
         # job_queue.join()  # block until all tasks are done
@@ -54,12 +55,14 @@ class scrapy(object):
         for idx in xrange(self.thread_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=self.worker_func(),
-                                 args=(self.job_queue,))
+                                 args=(self.job_queue,
+                                       self.crawler,
+                                       self.output))
             t.start()
 
 # TODO dead link
     def worker_func(self):
-        def worker(q):
+        def worker(q, crawler, output):
             print "[thread %s] starts ..." % threading.current_thread().name
 
             while True:
@@ -67,8 +70,17 @@ class scrapy(object):
                 if not q.empty():
                     item = q.get()
                     if item is not None:
-                        print "item: ", item  # process item
-                        q.task_done()
+                        print "processing item: ", item
+                        try:
+                            for item2 in crawler.parse(item):
+                                if isinstance(item2, Request):
+                                    q.put(item2)
+                                else:
+                                    output.put(item2)
+                            q.task_done()
+                        except:
+                            raise
+                            os._exit(-1)
 
                     print "Current queue size is %s ..." % \
                           q.qsize()

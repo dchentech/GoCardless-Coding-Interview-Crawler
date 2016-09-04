@@ -4,7 +4,7 @@ import os
 import urllib2
 from bs4 import BeautifulSoup
 
-if os.environ['USE_GOCARDLESS_VERSION_SCRAPY'] == "true":
+if os.getenv('USE_GOCARDLESS_VERSION_SCRAPY') == "true":
     from .gocardless_scrapy import scrapy, Request
 else:
     import scrapy
