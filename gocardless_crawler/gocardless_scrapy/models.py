@@ -38,6 +38,11 @@ class UrlItem(Model):
         return list(cls.select().where(cls.is_processed == peewee_false))
 
     @classmethod
+    def finished_urls(cls):
+        query = cls.select().where(cls.is_processed == peewee_true)
+        return [i.url for i in query]
+
+    @classmethod
     def init_db_and_table(cls, db_name):
         # Thread-safe
         db = SqliteDatabase(db_name, threadlocals=True)

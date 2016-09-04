@@ -54,6 +54,8 @@ class scrapy(object):
 
     def process(self):
         UrlItem.init_db_and_table(self.db_name)
+        for processed_url in UrlItem.finished_urls():
+            url_added_mark[processed_url] = True
 
         self.start_worker_threads()
         self.fetch_init_urls()
@@ -162,8 +164,9 @@ class scrapy(object):
                 time.sleep(scrapy.thread_sleep_seconds)
 
                 if not UrlItem.is_empty():
-                    item = Request(UrlItem.get().url)
-                    if item is not None:
+                    url_item = UrlItem.get()
+                    if url_item is not None:
+                        item = Request(url_item.url)
                         print "processing item: ", item
                         try:
                             for item2 in master.crawler.parse(item):

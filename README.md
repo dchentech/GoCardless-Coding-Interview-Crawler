@@ -121,3 +121,4 @@ TODO
 * extract image/assets from https://gocardless.com/bundle/main-22d1be7d280524ff318e.css
 * dead link
 * skip http://gocardless.com/guides/examples/sepa-mandate.pdf
+* sqlite performance
