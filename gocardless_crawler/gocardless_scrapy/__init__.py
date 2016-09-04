@@ -23,7 +23,7 @@ class scrapy(object):
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
     # thread_count = 20
-    thread_count = 40
+    thread_count = 99
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
@@ -143,6 +143,21 @@ class scrapy(object):
                 self.urls_total_counter,
                 self.assets_in_every_url_total_counter)
 
+    def __repr_detail__(self):
+        return "\n\n==============================\n" \
+               "queue: %s\n" \
+               "output: %s\n" \
+               "error: %s\n" \
+               "threads count:  %s\n"  \
+               "urls_total_counter: %s\n" \
+               "assets_in_every_url_total_counter: %s\n" % \
+               (self.inspect_queue(self.job_queue),
+                self.inspect_queue(self.output),
+                self.inspect_queue(self.errors),
+                threading.active_count(),
+                self.urls_total_counter,
+                self.assets_in_every_url_total_counter)
+
     def worker_func(self):
         def worker(master):
             thread_info = "[thread %s] " % threading.current_thread().name
@@ -201,7 +216,7 @@ class MonitorWebui(object):
 
     @cherrypy.expose
     def index(self):
-        return repr(self.master).replace("\n", "<br/>")
+        return self.master.__repr_detail__().replace("\n", "<br/>")
 
 
 __all__ = ['scrapy', 'Request']
