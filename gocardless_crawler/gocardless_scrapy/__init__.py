@@ -6,10 +6,21 @@ from .http_request import Request
 from Queue import Queue
 import threading
 import time
+from urllib2 import HTTPError
+import socket
+
+# TODO maybe use external memcached service
+global url_processed_mark
+url_processed_mark = dict()
+
 
 class scrapy(object):
     Spider = Spider
-    thread_count = 1
+
+    # One cpu, 10 threads = 30%, 20 threads = 107%
+    # thread_count = 20
+    thread_count = 40
+
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
 
@@ -26,10 +37,9 @@ class scrapy(object):
         # TODO maybe optimize maxsize
         self.job_queue = Queue()  # It's thread-safe
         self.output = Queue()
+        self.errors = Queue()
 
         self.crawler = self.crawler_recipe()
-
-        self.url_processed_mark = dict()
 
     def process(self):
         self.start_worker_threads()
@@ -37,11 +47,15 @@ class scrapy(object):
         self.check_if_job_is_done()
 
         print "output: %s" % self.output
+        print "errors: %s" % self.errors
 
     def put(self, request):
-        if request.url not in self.url_processed_mark:
+        if request.url not in url_processed_mark:
             self.job_queue.put(request)
-            self.url_processed_mark[request.url] = True
+            url_processed_mark[request.url] = True
+        else:
+            print request.url + " is already in the queue, and maybe " \
+                                "processed."
 
     def fetch_init_urls(self):
         for url in self.crawler.start_urls:
@@ -60,39 +74,51 @@ class scrapy(object):
                 os._exit(0)
 
     def start_worker_threads(self):
-        print "2. Create %s threads ..." % self.thread_count
+        print "Create %s threads ..." % self.thread_count
         for idx in xrange(self.thread_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=self.worker_func(),
-                                 args=(self.job_queue,
-                                       self.crawler,
-                                       self.output,
-                                       self))
+                                 args=(self, ))
             t.start()
 
+    def continue_or_drop_item(self, item2):
+        if isinstance(item2, Request):
+            if Request.is_gocardless(item2):
+                self.put(item2)
+        else:
+            self.output.put(item2)
+
     def worker_func(self):
-        def worker(q, crawler, output, master):
+        def worker(master):
             print "[thread %s] starts ..." % threading.current_thread().name
 
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
-                if not q.empty():
-                    item = q.get()
+
+                previous_queue_size = master.job_queue.qsize()
+
+                if not master.job_queue.empty():
+                    item = master.job_queue.get()
                     if item is not None:
                         print "processing item: ", item
                         try:
-                            for item2 in crawler.parse(item):
-                                if isinstance(item2, Request):
-                                    master.put(item2)
-                                else:
-                                    output.put(item2)
-                            q.task_done()
+                            for item2 in master.crawler.parse(item):
+                                master.continue_or_drop_item(item2)
+                            master.job_queue.task_done()
+                        except HTTPError as e1:
+                            msg = (item, e1,)
+                            master.errors.put(msg)
+                        except socket.timeout:
+                            pass
+                            # TODO redo item
                         except:
                             raise
                             os._exit(-1)
 
-                    print "Current queue size is %s ..." % \
-                          q.qsize()
+                    print "Current queue size is %s and previous was %s. " \
+                          "And output size is %s, and error size is %s" % \
+                          (master.job_queue.qsize(), previous_queue_size,
+                           master.output.qsize(), master.errors.qsize())
         return worker
 
 __all__ = ['scrapy', 'Request']

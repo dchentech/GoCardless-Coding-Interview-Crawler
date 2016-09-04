@@ -11,6 +11,9 @@ class Request(object):
 
     def __init__(self, url, func=None, callback=lambda: None):
         self.url = url.rstrip("/")
+        self.url = self.url.split("#")[0]  # remove hash part
+        self.url = self.url.encode('ascii', 'ignore').decode('ascii')
+
         self.func = func
         self.callback = callback
 
@@ -31,3 +34,8 @@ class Request(object):
         parsed_uri = urlparse(self.url)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
         return _urljoin(domain, path)
+
+    @classmethod
+    def is_gocardless(cls, request):
+        parsed_uri = urlparse(request.url)
+        return "gocardless" in parsed_uri.netloc.lower()
