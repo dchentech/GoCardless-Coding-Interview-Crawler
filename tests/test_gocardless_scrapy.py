@@ -6,6 +6,7 @@ import unittest
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, root_dir)
 from gocardless_crawler.gocardless_scrapy.http_request import Request
+from gocardless_crawler.gocardless_scrapy.models import UrlItem
 
 
 class TestGoCardlessScrapy(unittest.TestCase):
@@ -14,11 +15,32 @@ class TestGoCardlessScrapy(unittest.TestCase):
         response = Request("https://gocardless.com/", lambda: True)
         self.assertTrue("GoCardless" in response.css("title").extract_first())
 
-    def test_invalid_html(self):
-        """
-        Fix self.html = unicode(response.read(), "utf-8")
-        UnicodeDecodeError: 'utf8' codec can't decode byte 0xc3 in position 588: invalid continuation byte
-        """
-        url = "https://gocardless.com/fr-be"
-        response = Request(url, lambda: True)
-        self.assertTrue("GoCardless" in response.css("title").extract_first())
+    def test_UrlItem(self):
+        db_name = "tests.sqlite"
+        if os.path.isfile(db_name):
+            os.remove(db_name)
+
+        UrlItem.init_db_and_table(db_name)
+
+        first_count = UrlItem.unfinished_count()
+
+        # 1. insert an item
+        first_item = {"url": "a"}
+        UrlItem.create(**first_item)
+        seconds_count = UrlItem.unfinished_count()
+        self.assertEqual(seconds_count, first_count + 1)
+
+        # 2. read an item
+        self.assertEqual(UrlItem.get().url, first_item["url"])
+        self.assertEqual(UrlItem.unfinished_count(), first_count)
+
+        # 3. insert two items
+        UrlItem.create(**{"url": "b"})
+        UrlItem.create(**{"url": "c"})
+        two_items = UrlItem.read_all()
+        self.assertEqual(len(two_items), 2)
+        self.assertTrue(UrlItem.is_empty)
+
+        os.remove(db_name)
+        if os.path.isfile("peewee.db"):
+            os.remove("peewee.db")

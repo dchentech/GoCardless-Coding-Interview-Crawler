@@ -12,6 +12,7 @@ import socket
 import cherrypy
 from .spider import Spider
 from .http_request import Request
+from .models import UrlItem
 
 # TODO maybe use external memcached service
 global url_added_mark
@@ -39,7 +40,7 @@ class scrapy(object):
 
         # https://docs.python.org/2/library/queue.html
         # TODO maybe optimize maxsize
-        self.job_queue = Queue()  # It's thread-safe
+        # It's thread-safe
         self.output = Queue()
         self.errors = Queue()
 
@@ -65,7 +66,7 @@ class scrapy(object):
     def put(self, request, force=False):
         """ Remove duplicated request.  """
         if (not force) and (request.url not in url_added_mark):
-            self.job_queue.put(request)
+            UrlItem.create(**{"url": request.url})
             url_added_mark[request.url] = True
             self.urls_total_counter.increment()
         else:
@@ -78,27 +79,18 @@ class scrapy(object):
             self.put(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
             self.put(request)
-        assert self.job_queue.qsize() != 0
-        # job_queue.join()  # block until all tasks are done
+        assert UrlItem.select().count() != 0
 
     def check_if_job_is_done(self):
-        previous_queue_count = 0
-
         while True:
-            previous_queue_count = self.job_queue.qsize()
-
             time.sleep(scrapy.thread_check_queue_finished_seconds)
 
             print self
 
             # If we process the last item, then exit.
-            if self.job_queue.empty():
+            if UrlItem.is_empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
-
-            if previous_queue_count == self.job_queue.qsize():
-                # NOTE to find out why not peak the queue
-                print "current queue: %s" % self.inspect_queue(self.job_queue)
 
     def inspect_queue(self, q1):
         try:
@@ -136,14 +128,14 @@ class scrapy(object):
                "threads count:  %s\n"  \
                "urls_total_counter: %s\n" \
                "assets_in_every_url_total_counter: %s\n" % \
-               (self.job_queue.qsize(),
+               (UrlItem.unfinished_count(),
                 self.output.qsize(),
                 self.errors.qsize(),
                 threading.active_count(),
                 self.urls_total_counter,
                 self.assets_in_every_url_total_counter)
 
-    def __repr_detail__(self):
+    def status(self):
         return "\n\n==============================\n" \
                "queue: %s\n" \
                "output: %s\n" \
@@ -151,7 +143,7 @@ class scrapy(object):
                "threads count:  %s\n"  \
                "urls_total_counter: %s\n" \
                "assets_in_every_url_total_counter: %s\n" % \
-               (self.inspect_queue(self.job_queue),
+               (UrlItem.read_all(),
                 self.inspect_queue(self.output),
                 self.inspect_queue(self.errors),
                 threading.active_count(),
@@ -166,14 +158,13 @@ class scrapy(object):
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
 
-                if not master.job_queue.empty():
-                    item = master.job_queue.get()
+                if not UrlItem.is_empty():
+                    item = UrlItem.get()
                     if item is not None:
                         print "processing item: ", item
                         try:
                             for item2 in master.crawler.parse(item):
                                 master.continue_or_drop_item(item2)
-                            master.job_queue.task_done()
                         except (HTTPError, ) as e1:
                             msg = (item, e1,)
                             master.errors.put(msg)
@@ -218,7 +209,7 @@ class MonitorWebui(object):
 
     @cherrypy.expose
     def index(self):
-        return self.master.__repr_detail__().replace("\n", "<br/>")
+        return self.master.status().replace("\n", "<br/>")
 
 
-__all__ = ['scrapy', 'Request']
+__all__ = ['scrapy', 'Request', 'UrlItem']

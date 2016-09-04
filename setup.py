@@ -16,6 +16,7 @@ setup(
         'Scrapy',
         'beautifulsoup4',
         'cherrypy',
+        'peewee',
     ],
     scripts=[
         'bin/clean_result.py',
