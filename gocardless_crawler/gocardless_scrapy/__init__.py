@@ -105,7 +105,7 @@ class scrapy(object):
             print self
 
             # If we process the last item, then exit.
-            if self.requests_todo.empty():
+            if self.requests_todo.empty() and self.link_items_output.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
 

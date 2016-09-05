@@ -2,6 +2,7 @@
 
 import cherrypy
 import threading
+import cgi
 from .models import LinkItem, ErrorLog
 
 
@@ -12,7 +13,8 @@ class MonitorWebui(object):
 
     @cherrypy.expose
     def index(self):
-        return self.status().replace("\n", "<br/>")
+        content = self.status().replace("\n", "<br/>")
+        return content
 
     def status(self):
         def join_lines(lines):
@@ -36,7 +38,7 @@ class MonitorWebui(object):
 
         def select_lastest_records(model):
             records = list(model.select().order_by(model.id.desc()).limit(10))
-            return [str(i) for i in records]
+            return [cgi.escape(repr(i)) + "\n" for i in records]
         table_LinkItem_lastest_records = select_lastest_records(LinkItem)
         table_ErrorLog_lastest_records = select_lastest_records(ErrorLog)
 
