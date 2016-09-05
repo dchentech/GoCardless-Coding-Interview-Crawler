@@ -2,12 +2,10 @@
 
 import os
 import sys
-import copy
 # https://docs.python.org/2/library/queue.html
 # Queue is thread-safe
 from Queue import Queue as BlockingQueue
 import threading
-from multiprocessing import RawValue, Lock
 import time
 from urllib2 import HTTPError, URLError
 from httplib import BadStatusLine
@@ -36,6 +34,11 @@ class scrapy(ScrapyStatus):
 
     @classmethod
     def run(cls, crawler_recipe):
+        """
+        The public API.
+
+        e.g. scrapy.run(GoCardlessWebsiteCrawler)
+        """
         print "... begin to run ", crawler_recipe
         crawler = cls(crawler_recipe)
         crawler.work()
@@ -62,6 +65,9 @@ class scrapy(ScrapyStatus):
         self.debug = False
 
     def work(self):
+        """
+        The main function.
+        """
         self.links_done = LinkItem.links_done()
 
         self.resume_unfinished_requests()
@@ -109,17 +115,6 @@ class scrapy(ScrapyStatus):
             if self.requests_todo.empty() and self.link_items_output.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
-
-    def inspect_queue(self, q1):
-        try:
-            q2 = copy.deepcopy(q1)
-        except TypeError as e:
-            return str(e)
-
-        l2 = list()
-        while not q2.empty():
-            l2.append(q2.get())
-        return "queue:%s: %s" % (q1, l2)
 
     def start_sync_db_worker_thread(self):
         t = threading.Thread(target=self.sync_db_worker_func(),
@@ -227,25 +222,6 @@ class scrapy(ScrapyStatus):
         def webui(self):
             cherrypy.quickstart(MonitorWebui(self), "/")
         threading.Thread(target=webui, args=(self, )).start()
-
-
-# http://stackoverflow.com/questions/35088139/how-to-make-a-thread-safe-global-counter-in-python
-class Counter(object):
-    def __init__(self, value=0):
-        # RawValue because we don't need it to create a Lock:
-        self.val = RawValue('i', value)
-        self.lock = Lock()
-
-    def increment(self):
-        with self.lock:
-            self.val.value += 1
-
-    def value(self):
-        with self.lock:
-            return self.val.value
-
-    def __repr__(self):
-        return str(self.val)
 
 
 __all__ = ['scrapy']
