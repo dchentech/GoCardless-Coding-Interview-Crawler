@@ -59,6 +59,10 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             full_url = response.urljoin(href.xpath("@href").extract_first())
             assets["link"].append(full_url)
 
+        # Clean "None" values
+        for k in assets.keys():
+            assets[k] = [i for i in assets[k] if i]
+
         return result
 
     @property
