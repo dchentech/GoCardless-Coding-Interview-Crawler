@@ -80,6 +80,7 @@ class scrapy(object):
             # Ignore other domain urls
             if Request.is_gocardless(request):
                 self.requests_todo.put(request)
+                self.links_done.add(request.url)
         else:
             if self.debug:
                 print request.url + " is already in the queue, and maybe " \
