@@ -21,7 +21,9 @@ if [[ $USE_GOCARDLESS_VERSION_SCRAPY == "true" ]]; then
   echo "Use GoCardless demo version of Scrapy ..."
   ./bin/gocardless_scrapy.py
   ./bin/dump_result.py $RESULT_JSON
+  echo "Please checkout $RESULT_JSON ..."
 else
   echo "Use https://github.com/scrapy/scrapy ..."
   scrapy runspider gocardless_crawler/crawler.py --output $SCRAPY_OUTPUT_JSON
+  echo "Please checkout $SCRAPY_OUTPUT_JSON ..."
 fi
