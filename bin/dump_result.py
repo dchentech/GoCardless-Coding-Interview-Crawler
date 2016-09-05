@@ -16,6 +16,8 @@ ERROR_JSON = "%s.error_log" % RESULT_JSON
 
 # Dump LinkItem table
 link_items = LinkItem.link_to_assets_map()
+for link, assets in link_items.iteritems():
+    del assets["link"]
 link_items_content = json.dumps(link_items, indent=4, sort_keys=True)
 write(link_items_content, RESULT_JSON)
 
