@@ -10,14 +10,12 @@ import time
 from urllib2 import HTTPError, URLError
 from httplib import BadStatusLine
 import socket
-import cherrypy
 from peewee import IntegrityError, OperationalError
 from .http_request import Request
 from .models import LinkItem, ErrorLog
-from .monitor_webui import MonitorWebui
 from .scrapy_status import ScrapyStatus
 from .scrapy_threads import ScrapyThreads
-from .conf import thread_count, thread_check_queue_finished_seconds
+from .conf import thread_check_queue_finished_seconds
 
 class scrapy(ScrapyStatus, ScrapyThreads):
     """
@@ -112,20 +110,6 @@ class scrapy(ScrapyStatus, ScrapyThreads):
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
 
-    def start_sync_db_worker_thread(self):
-        t = threading.Thread(target=self.sync_db_worker_func(),
-                             args=(self, ))
-        t.start()
-        return t
-
-    def start_crawler_worker_threads(self):
-        print "Create %s threads ..." % thread_count
-        for idx in xrange(thread_count):
-            print "create thread[%s] ..." % (idx + 1)
-            t = threading.Thread(target=self.crawler_worker_func(),
-                                 args=(self, idx + 1, ))
-            t.start()
-
     def continue_or_drop_item(self, item2):
         if isinstance(item2, Request):
             self.put(item2)
@@ -163,11 +147,6 @@ class scrapy(ScrapyStatus, ScrapyThreads):
         except:
             print "Unexpected error:", sys.exc_info()[0]
             raise
-
-    def start_monitor_webui(self):
-        def webui(self):
-            cherrypy.quickstart(MonitorWebui(self), "/")
-        threading.Thread(target=webui, args=(self, )).start()
 
 
 __all__ = ['scrapy']

@@ -2,9 +2,11 @@
 
 import threading
 import time
+import cherrypy
 from .conf import thread_sleep_seconds, thread_sync_db_wait_seconds, \
-    thread_sync_db_max_records_one_time
+    thread_sync_db_max_records_one_time, thread_count
 from .models import LinkItem, ErrorLog
+from .monitor_webui import MonitorWebui
 
 
 class ScrapyThreads(object):
@@ -58,5 +60,27 @@ class ScrapyThreads(object):
                                              error_json["error"])
 
         return worker
+
+    def start_monitor_webui(self):
+        def webui(self):
+            cherrypy.quickstart(MonitorWebui(self), "/")
+        threading.Thread(target=webui, args=(self, )).start()
+
+    def start_sync_db_worker_thread(self):
+        t = threading.Thread(target=self.sync_db_worker_func(),
+                             args=(self, ))
+        t.start()
+        return t
+
+    def start_crawler_worker_threads(self):
+        print "Create %s threads ..." % thread_count
+        self.crawler_worker_threads = []
+        for idx in xrange(thread_count):
+            print "create thread[%s] ..." % (idx + 1)
+            t = threading.Thread(target=self.crawler_worker_func(),
+                                 args=(self, idx + 1, ))
+            t.start()
+            self.crawler_worker_threads.append(t)
+
 
 __all__ = ['ScrapyThreads']
