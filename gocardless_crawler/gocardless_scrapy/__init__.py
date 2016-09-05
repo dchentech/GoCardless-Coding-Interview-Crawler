@@ -184,19 +184,6 @@ class scrapy(object):
                 threading.active_count(),
                 LinkItem.select().count(),)
 
-    def status(self):
-        return "\n\n==============================\n" \
-               "requests_todo: %s\n" \
-               "error: %s\n" \
-               "sync_db_worker_thread.isAlive(): %s\n" \
-               "threads count:  %s\n"  \
-               "table count:  %s\n" % \
-               (self.requests_todo.qsize(),
-                ErrorLog.select().count(),
-                self.sync_db_worker_thread.isAlive(),
-                threading.active_count(),
-                LinkItem.select().count(),)
-
     def process(self, item):
         print "processing item: ", item
         try:
