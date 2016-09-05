@@ -24,9 +24,8 @@ class TestGoCardlessScrapy(unittest.TestCase):
                 os.remove(db_name)
 
         # 1. Init no data
-        LinkItem.load_previous_status()
         self.assertEquals(LinkItem.select().count(), 0)
-        self.assertEquals(LinkItem.link_to_assets_map, dict())
+        self.assertEquals(LinkItem.link_to_assets_map(), dict())
 
         # 2. Insert some data
         asset_a = {"link": ["/b"],
@@ -35,11 +34,11 @@ class TestGoCardlessScrapy(unittest.TestCase):
                    "js": []}
         LinkItem.insert_item("/a", asset_a)
         self.assertEquals(LinkItem.select().count(), 1)
-        LinkItem.load_previous_status()
-        self.assertEquals(LinkItem.link_to_assets_map, {"/a": asset_a})
+        self.assertEquals(LinkItem.link_to_assets_map(), {"/a": asset_a})
 
-        self.assertTrue(LinkItem.is_link_processed("/a"))
-        self.assertFalse(LinkItem.is_link_processed("/b"))
-        self.assertFalse(LinkItem.is_link_processed("/nonexistent"))
+        self.assertTrue("/a" in LinkItem.links_done())
+        self.assertTrue("/b" in LinkItem.links_todo())
+        self.assertFalse("/a" in LinkItem.links_todo())
+        self.assertFalse("/b" in LinkItem.links_done())
 
         clear_dbs()

@@ -92,26 +92,30 @@ class LinkItem(Model):
     class Meta:
         database = db
 
-    link_to_assets_map = dict()
-    _is_link_processed_set = set()
+    @classmethod
+    def load_all_data(cls):
+        return list(cls.select())
 
     @classmethod
-    def load_previous_status(cls):
-        for i in cls.select():
-            link = i.link
-            assets = json.loads(i.assets)
-
-            cls.link_to_assets_map[link] = assets
-
-            cls._is_link_processed_set.add(link)
+    def link_to_assets_map(cls):
+        result = dict()
+        for i in cls.load_all_data():
+            result[i.link] = json.loads(i.assets)
+        return result
 
     @classmethod
-    def current_processed_links_count(cls):
-        return len(cls._is_link_processed_set)
+    def links_done(cls):
+        return set(cls.link_to_assets_map().keys())
 
     @classmethod
-    def is_link_processed(cls, link):
-        return link in cls._is_link_processed_set
+    def links_todo(cls):
+        result = list()
+        done = cls.links_done()
+        for link, assets in cls.link_to_assets_map().iteritems():
+            for link2 in assets["link"]:
+                if link2 not in done:
+                    result.append(link2)
+        return result
 
     @classmethod
     def insert_item(cls, _link, _assets):

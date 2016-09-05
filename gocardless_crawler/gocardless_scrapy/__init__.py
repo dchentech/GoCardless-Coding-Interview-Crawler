@@ -41,7 +41,7 @@ class scrapy(object):
 
         # TODO change below two API
         # Inserted from database and crawler workers
-        self.links_todo = BlockingQueue()
+        self.requests_todo = BlockingQueue()
 
         # Inserted from crawler workers, and would be readed by
         # Insert-database-thread
@@ -72,9 +72,9 @@ class scrapy(object):
 
     def put(self, request, force=False):
         """ Remove duplicated request.  """
-        is_undone = LinkItem.is_link_processed(request.url)
-        if (not force) and is_undone:
-            self.links_todo.put(request.url)
+        is_done = LinkItem.is_link_processed(request.url)
+        if (not force) and (not is_done):
+            self.requests_todo.put(request.url)
             self.links_total_counter.increment()
         else:
             if self.debug:
@@ -82,11 +82,11 @@ class scrapy(object):
                                     "processed."
 
     def fetch_init_links(self):
-        for url in self.crawler.start_links:
+        for url in self.crawler.start_urls:
             self.put(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
             self.put(request)
-        assert len(self.links_todo) > 0
+        assert self.requests_todo.qsize() > 0
 
     def check_if_job_is_done(self):
         while True:
@@ -95,7 +95,7 @@ class scrapy(object):
             print self
 
             # If we process the last item, then exit.
-            if self.links_todo.empty():
+            if self.requests_todo.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
 
@@ -203,11 +203,10 @@ class scrapy(object):
                 time.sleep(scrapy.thread_sleep_seconds)
 
                 link_item = None
-                if master.links_todo.qsize() > 0:
-                    link = master.links_todo.get()
-                    if link is not None:
-                        item = Request(link_item.url)
-                        master.process(item)
+                if master.requests_todo.qsize() > 0:
+                    link_item = master.requests_todo.get()
+                    if link_item is not None:
+                        master.process(link_item)
 
         return worker
 
