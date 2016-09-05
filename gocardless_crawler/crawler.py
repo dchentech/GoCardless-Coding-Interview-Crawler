@@ -36,7 +36,7 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
 
     def parse_gocardless_static_assets(self, response):
         assets = {"image": [], "css": [], "js": []}
-        result = {"url": response.url, "assets": assets}
+        result = {"link": response.url, "assets": assets}
 
         for img in response.css("img"):
             assets["image"].append(img.xpath('@src').extract_first())

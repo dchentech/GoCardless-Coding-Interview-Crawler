@@ -27,6 +27,8 @@ class scrapy(object):
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
+    thread_sync_db_wait_seconds = 5
+    thread_sync_db_max_records_one_time = 100
 
     db_name = "gocardless"
 
@@ -116,18 +118,25 @@ class scrapy(object):
 
     def sync_db_worker_func(self):
         def worker(master):
-            thread_info = "[thread sync_db_worker %s] starts ..." % \
+            thread_info = "[thread sync_db_worker %s] " % \
                           threading.current_thread().name
-            print thread_info
+            print thread_info + "starts ..."
 
             while True:
-                time.sleep(scrapy.thread_sleep_seconds)
+                time.sleep(scrapy.thread_sync_db_wait_seconds)
 
-                if not master.link_items_output.empty():
+                sync_count = 0
+                while not master.link_items_output.empty():
                     link_item_json = master.link_items_output.get()
                     if link_item_json is not None:
                         LinkItem.insert_item(link_item_json["link"],
                                              link_item_json["assets"])
+                        sync_count += 1
+                        if (sync_count >
+                                self.thread_sync_db_max_records_one_time):
+                            break
+                msg = "synced %s records at this time ..." % (sync_count,)
+                print thread_info + msg
 
         return worker
 
@@ -144,6 +153,8 @@ class scrapy(object):
             # Ignore other domain urls
             if Request.is_gocardless(item2):
                 self.put(item2)
+        else:
+            self.link_items_output.put(item2)
 
     def __repr__(self):
         return "\n\n==============================\n" \
