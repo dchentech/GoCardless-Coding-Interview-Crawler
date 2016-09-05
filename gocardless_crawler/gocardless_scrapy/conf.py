@@ -1,6 +1,5 @@
 # -*-coding:utf-8-*-
 
-# One cpu, 10 threads = 30%, 20 threads = 107%
 thread_crawler_count = 50
 
 thread_sleep_seconds = 10 * 0.001
