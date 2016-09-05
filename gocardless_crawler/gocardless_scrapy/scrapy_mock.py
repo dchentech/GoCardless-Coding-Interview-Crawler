@@ -12,7 +12,7 @@ from httplib import BadStatusLine
 import socket
 from peewee import IntegrityError, OperationalError
 from .http_request import Request
-from .models import LinkItem, ErrorLog
+from .models import LinkItem
 from .scrapy_status import ScrapyStatus
 from .scrapy_threads import ScrapyThreads
 from .conf import thread_check_queue_finished_seconds
@@ -117,17 +117,7 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             self.link_items_output.put(item2)
 
     def __repr__(self):
-        return "\n\n==============================\n" \
-               "requests_todo size: %s\n" \
-               "link_items_output size: %s\n" \
-               "error size: %s\n" \
-               "threads count:  %s\n"  \
-               "table count:  %s\n" % \
-               (self.requests_todo.qsize(),
-                self.link_items_output.qsize(),
-                ErrorLog.select().count(),
-                threading.active_count(),
-                LinkItem.select().count(),)
+        return self.process_status
 
     def process(self, item):
         print "processing item: ", item
