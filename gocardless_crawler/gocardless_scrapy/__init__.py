@@ -3,7 +3,9 @@
 import os
 import sys
 import copy
-from Queue import Queue
+# https://docs.python.org/2/library/queue.html
+# Queue is thread-safe
+from Queue import Queue as BlockingQueue
 import threading
 from multiprocessing import RawValue, Lock
 import time
@@ -14,11 +16,7 @@ import cherrypy
 from peewee import IntegrityError, OperationalError
 from .spider import Spider
 from .http_request import Request
-from .models import UrlItem, UrlAssets, PeeweeUtils
-
-# TODO maybe use external memcached service
-global url_added_mark
-url_added_mark = dict()
+from .models import LinkItem
 
 
 class scrapy(object):
@@ -41,26 +39,29 @@ class scrapy(object):
     def __init__(self, crawler_recipe):
         self.crawler_recipe = crawler_recipe
 
-        # https://docs.python.org/2/library/queue.html
-        # TODO maybe optimize maxsize
-        # It's thread-safe
-        self.errors = Queue()
+        # TODO change below two API
+        # Inserted from database and crawler workers
+        self.links_todo = BlockingQueue()
+
+        # Inserted from crawler workers, and would be readed by
+        # Insert-database-thread
+        self.link_items_output = BlockingQueue()
+
+        self.errors = BlockingQueue()
 
         self.crawler = self.crawler_recipe()
 
         self.debug = False
 
     def work(self):
-        UrlItem.init_db_and_table("mysql", self.db_name)
-        UrlAssets.init_db_and_table("mysql", self.db_name)
+        LinkItem.load_previous_status()
 
-        self.urls_total_counter = Counter(UrlItem.finished_urls_count())
+        _links_total_counter = LinkItem.current_processed_links_count()
+        self.links_total_counter = Counter(_links_total_counter)
 
-        for processed_url in UrlItem.finished_urls():
-            url_added_mark[processed_url] = True
-
-        self.start_worker_threads()
-        self.fetch_init_urls()
+        self.start_crawler_worker_threads()
+        self.start_sync_db_worker_thread()
+        self.fetch_init_links()
         self.start_monitor_webui()
         self.check_if_job_is_done()
 
@@ -71,24 +72,21 @@ class scrapy(object):
 
     def put(self, request, force=False):
         """ Remove duplicated request.  """
-        if (not force) and (request.url not in url_added_mark):
-            def func():
-                UrlItem.create(**{"url": request.url})
-            PeeweeUtils.catch_OperationalError(func)
-
-            url_added_mark[request.url] = True
-            self.urls_total_counter.increment()
+        is_undone = LinkItem.is_link_processed(request.url)
+        if (not force) and is_undone:
+            self.links_todo.put(request.url)
+            self.links_total_counter.increment()
         else:
             if self.debug:
                 print request.url + " is already in the queue, and maybe " \
                                     "processed."
 
-    def fetch_init_urls(self):
-        for url in self.crawler.start_urls:
+    def fetch_init_links(self):
+        for url in self.crawler.start_links:
             self.put(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
             self.put(request)
-        assert UrlItem.select().count() != 0
+        assert len(self.links_todo) > 0
 
     def check_if_job_is_done(self):
         while True:
@@ -97,7 +95,7 @@ class scrapy(object):
             print self
 
             # If we process the last item, then exit.
-            if UrlItem.is_empty():
+            if self.links_todo.empty():
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
 
@@ -112,11 +110,33 @@ class scrapy(object):
             l2.append(q2.get())
         return "queue:%s: %s" % (q1, l2)
 
-    def start_worker_threads(self):
+    def start_sync_db_worker_thread(self):
+        t = threading.Thread(target=self.sync_db_worker_func(),
+                             args=(self, ))
+        t.start()
+
+    def sync_db_worker_func(self):
+        def worker(master):
+            thread_info = "[thread sync_db_worker %s] starts ..." % \
+                          threading.current_thread().name
+            print thread_info
+
+            while True:
+                time.sleep(scrapy.thread_sleep_seconds)
+
+                if not master.link_items_output.empty():
+                    link_item_json = master.link_items_output.get()
+                    if link_item_json is not None:
+                        LinkItem.insert_item(link_item_json["link"],
+                                             link_item_json["assets"])
+
+        return worker
+
+    def start_crawler_worker_threads(self):
         print "Create %s threads ..." % self.thread_count
         for idx in xrange(self.thread_count):
             print "create thread[%s] ..." % (idx + 1)
-            t = threading.Thread(target=self.worker_func(),
+            t = threading.Thread(target=self.crawler_worker_func(),
                                  args=(self, idx + 1, ))
             t.start()
 
@@ -125,8 +145,6 @@ class scrapy(object):
             # Ignore other domain urls
             if Request.is_gocardless(item2):
                 self.put(item2)
-        else:
-            UrlAssets.upsert(item2["url"], item2["assets"])
 
     def __repr__(self):
         return "\n\n==============================\n" \
@@ -134,12 +152,12 @@ class scrapy(object):
                "output size: %s\n" \
                "error size: %s\n" \
                "threads count:  %s\n"  \
-               "urls_total_counter: %s\n" % \
-               (UrlItem.unfinished_count(),
-                UrlAssets.total_count(),
+               "links_total_counter: %s\n" % \
+               (LinkItem.unfinished_count(),
+                1,
                 self.errors.qsize(),
                 threading.active_count(),
-                self.urls_total_counter,)
+                self.links_total_counter,)
 
     def status(self):
         return "\n\n==============================\n" \
@@ -147,12 +165,12 @@ class scrapy(object):
                "output: %s\n" \
                "error: %s\n" \
                "threads count:  %s\n"  \
-               "urls_total_counter: %s\n" % \
-               (UrlItem.read_all(),
-                UrlAssets.read_all(),
+               "links_total_counter: %s\n" % \
+               (LinkItem.read_all(),
+                1,
                 self.inspect_queue(self.errors),
                 threading.active_count(),
-                self.urls_total_counter,)
+                self.links_total_counter,)
 
     def process(self, item):
         print "processing item: ", item
@@ -166,33 +184,30 @@ class scrapy(object):
             # NOTE URLError is alos timeout error.
             self.put_again(item)
         except (IntegrityError, OperationalError):
-            # ignore peewee errors
-            pass
+            # TODO should remove it, crawlers don't write to db directly now,
+            # they write data to Queue.
+            pass  # ignore peewee errors
         except:
             print "Unexpected error:", sys.exc_info()[0]
             raise
 
-    def worker_func(self):
+    def crawler_worker_func(self):
         def worker(master, wait_seconds):
             thread_info = "[thread %s] " % threading.current_thread().name
             print thread_info + "starts ..."
 
-            # NOTE avoid sqlite db lock at init time.
+            # Don't start too fast.
             time.sleep(wait_seconds)
 
             while True:
                 time.sleep(scrapy.thread_sleep_seconds)
 
-                url_item = None
-                if not UrlItem.is_empty():
-                    try:
-                        url_item = UrlItem.get()
-                    except OperationalError:
-                        pass
-
-                if url_item is not None:
-                    item = Request(url_item.url)
-                    master.process(item)
+                link_item = None
+                if master.links_todo.qsize() > 0:
+                    link = master.links_todo.get()
+                    if link is not None:
+                        item = Request(link_item.url)
+                        master.process(item)
 
         return worker
 
@@ -231,4 +246,4 @@ class MonitorWebui(object):
         return self.master.status().replace("\n", "<br/>")
 
 
-__all__ = ['scrapy', 'Request', 'UrlItem']
+__all__ = ['scrapy', 'Request', 'LinkItem']

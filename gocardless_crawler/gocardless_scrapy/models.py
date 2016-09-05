@@ -5,7 +5,7 @@ import time
 import json
 from peewee import MySQLDatabase, SqliteDatabase
 from peewee import Model, IntegerField, CharField, \
-    BooleanField, TextField, OperationalError
+    TextField, OperationalError
 
 peewee_false = False
 peewee_true = True
@@ -71,73 +71,56 @@ class CommonAPI():
 
         cls.meta_cls.database = db
 
-        db.connect()
-        if not cls.table_exists():
-            cls.create_table()
+
+db_name = os.getenv("DATABASE_NAME")
+assert db_name is not None
+db = SqliteDatabase(db_name, threadlocals=True)
 
 
-class UrlItem(Model, CommonAPI):
+class LinkItem(Model):
+    """
+    1. Queue.Queue is already fast enough for multiple-threads.
+    2. Use a single writing thread to do the database job.
+    3. Crawler doesn't require transactional consistency.
+       It could re-process any item at any time.
+    """
+
     id = IntegerField(index=True, primary_key=True)
-    url = CharField(unique=False)  # could be duplicated
-    is_processed = BooleanField(index=True, default=False)
-
-    @classmethod
-    def unfinished_count(cls):
-        return cls.select().where(cls.is_processed == peewee_false).count()
-
-    @classmethod
-    def is_empty(cls):
-        return cls.unfinished_count() == 0
-
-    @classmethod
-    def get(cls):
-        with config.db.atomic():
-            item = cls.select().where(cls.is_processed == peewee_false).first()
-            if item is None:
-                return None
-            else:
-                cls.update(is_processed=True) \
-                   .where(cls.id == item.id).execute()
-                return item
-
-    @classmethod
-    def read_all(cls):
-        return list(cls.select().where(cls.is_processed == peewee_false))
-
-    @classmethod
-    def finished_urls(cls):
-        query = cls.select().where(cls.is_processed == peewee_true)
-        return [i.url for i in query]
-
-    @classmethod
-    def finished_urls_count(cls):
-        return cls.select().where(cls.is_processed == peewee_true).count()
-
-
-class UrlAssets(Model, CommonAPI):
-    id = IntegerField(index=True, primary_key=True)
-    url = CharField(unique=True, index=True)
+    link = CharField(unique=True)
     assets = TextField()
 
-    @classmethod
-    def upsert(cls, url, _assets):
-        with config.db.atomic():
-            is_created = cls.select().where(cls.url == url).limit(1).count() \
-                == 1
-            if not is_created:
-                cls.create(url=url, assets=json.dumps(_assets))
+    class Meta:
+        database = db
+
+    link_to_assets_map = dict()
+    _is_link_processed_set = set()
 
     @classmethod
-    def read_all(cls):
-        result = []
+    def load_previous_status(cls):
         for i in cls.select():
-            item = {"url": i.url, "assets": json.loads(i.assets)}
-            result.append(item)
-        return result
+            link = i.link
+            assets = json.loads(i.assets)
+
+            cls.link_to_assets_map[link] = assets
+
+            cls._is_link_processed_set.add(link)
 
     @classmethod
-    def total_count(cls):
-        return cls.select().count()
+    def current_processed_links_count(cls):
+        return len(cls._is_link_processed_set)
+
+    @classmethod
+    def is_link_processed(cls, link):
+        return link in cls._is_link_processed_set
+
+    @classmethod
+    def insert_item(cls, _link, _assets):
+        cls.create(link=_link, assets=json.dumps(_assets))
 
 
-__all__ = ["UrlItem", "UrlAssets", "PeeweeUtils"]
+db.connect()
+if not LinkItem.table_exists():
+    LinkItem.create_table()
+
+
+__all__ = ["LinkItem", "PeeweeUtils"]

@@ -6,7 +6,7 @@ import unittest
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, root_dir)
 from gocardless_crawler.gocardless_scrapy.http_request import Request
-from gocardless_crawler.gocardless_scrapy.models import UrlItem, UrlAssets
+from gocardless_crawler.gocardless_scrapy.models import LinkItem
 
 
 class TestGoCardlessScrapy(unittest.TestCase):
@@ -15,42 +15,31 @@ class TestGoCardlessScrapy(unittest.TestCase):
         response = Request("https://gocardless.com/", lambda: True)
         self.assertTrue("GoCardless" in response.css("title").extract_first())
 
-    def test_UrlItem(self):
-        db_name = "tests.sqlite"
+    def test_LinkItem(self):
+        db_name = os.getenv("DATABASE_NAME")
+        self.assertTrue(db_name is not None)
 
         def clear_dbs():
             if os.path.isfile(db_name):
                 os.remove(db_name)
-            if os.path.isfile("peewee.db"):
-                os.remove("peewee.db")
-        clear_dbs()
 
-        UrlItem.init_db_and_table("sqlite", db_name)
-        UrlAssets.init_db_and_table("sqlite", db_name)
+        # 1. Init no data
+        LinkItem.load_previous_status()
+        self.assertEquals(LinkItem.select().count(), 0)
+        self.assertEquals(LinkItem.link_to_assets_map, dict())
 
-        first_count = UrlItem.unfinished_count()
+        # 2. Insert some data
+        asset_a = {"link": ["/b"],
+                   "image": [],
+                   "css": [],
+                   "js": []}
+        LinkItem.insert_item("/a", asset_a)
+        self.assertEquals(LinkItem.select().count(), 1)
+        LinkItem.load_previous_status()
+        self.assertEquals(LinkItem.link_to_assets_map, {"/a": asset_a})
 
-        # 1. insert an item
-        first_item = {"url": "a"}
-        UrlItem.create(**first_item)
-        seconds_count = UrlItem.unfinished_count()
-        self.assertEqual(seconds_count, first_count + 1)
-
-        # 2. read an item
-        self.assertEqual(UrlItem.get().url, first_item["url"])
-        self.assertEqual(UrlItem.unfinished_count(), first_count)
-
-        # 3. insert two items
-        UrlItem.create(**{"url": "b"})
-        UrlItem.create(**{"url": "c"})
-        two_items = UrlItem.read_all()
-        self.assertEqual(len(two_items), 2)
-        self.assertTrue(UrlItem.is_empty)
-
-        assets = {"image": [], "js": [], "css": []}
-        UrlAssets.upsert("/a", assets)
-        expected_assets = [{"url": "/a", "assets": assets}]
-        self.assertEqual(UrlAssets.select().count(), 1)
-        self.assertEqual(UrlAssets.read_all(), expected_assets)
+        self.assertTrue(LinkItem.is_link_processed("/a"))
+        self.assertFalse(LinkItem.is_link_processed("/b"))
+        self.assertFalse(LinkItem.is_link_processed("/nonexistent"))
 
         clear_dbs()

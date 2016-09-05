@@ -73,7 +73,7 @@ How to run unittest?
 ----------------------------------
 ```bash
 pip install nose
-nosetests
+export DATABASE_NAME="crawler_gocardless_test.db"; rm -f $DATABASE_NAME && nosetests
 ```
 
 
