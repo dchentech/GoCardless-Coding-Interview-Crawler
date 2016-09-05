@@ -21,7 +21,8 @@ class Request(object):
         self.network_method = [read_via_pycurl, read_via_urllib2][0]
 
     def read_html(self):
-        if self.url.startswith("http://"):
+        # NOTE disable pycurl 20160905 21:43
+        if False and self.url.startswith("http://"):
             # TODO pycurl couldn't handle "https://" pages, due to ssl
             # installation issue.
             content = read_via_pycurl(self.url)
