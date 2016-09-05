@@ -7,7 +7,8 @@ from bs4 import BeautifulSoup
 if not os.getenv('SCRAPY_VENDOR'):
     msg = """\n\n\n
 Please export your \"$SCRAPY_VENDOR\" shell environment variable."
-Available Scrapy Implementation are \"scrapy\" and \"mock\".\n\n\n"""
+Available Scrapy Implementation are \"scrapy\" and \"mock\".
+e.g. SCRAPY_VENDOR=mock ./docker-entrypoint.sh\n\n\n"""
     raise Exception(msg)
 
 if os.getenv('SCRAPY_VENDOR') == "mock":

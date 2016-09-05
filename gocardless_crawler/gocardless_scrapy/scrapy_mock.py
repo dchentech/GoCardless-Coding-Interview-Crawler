@@ -17,6 +17,10 @@ from .scrapy_status import ScrapyStatus
 from .scrapy_threads import ScrapyThreads
 from .conf import thread_check_queue_finished_seconds
 
+global crawler_thread_to_link_map
+crawler_thread_to_link_map = dict()
+
+
 class scrapy(ScrapyStatus, ScrapyThreads):
     """
     A mini mock scrapy framework.
@@ -25,6 +29,8 @@ class scrapy(ScrapyStatus, ScrapyThreads):
         """
         I'm a fake mock class
         """
+
+    crawler_thread_to_link_map = crawler_thread_to_link_map
 
     @classmethod
     def run(cls, crawler_recipe):
@@ -40,11 +46,8 @@ class scrapy(ScrapyStatus, ScrapyThreads):
     def __init__(self, crawler_recipe):
         self.crawler_recipe = crawler_recipe
 
-        # TODO insert errors into db
-
         # NOTE all below BlockingQueue would be lost, if you kill the process.
 
-        # TODO change below two API
         # Inserted from database and crawler workers
         self.requests_todo = BlockingQueue()
 
@@ -89,7 +92,7 @@ class scrapy(ScrapyStatus, ScrapyThreads):
 
     def fetch_init_links(self):
         for url in self.crawler.start_urls:
-            # always put start_urls
+            # always put start_urls every time
             self.put_again(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
             self.put(request)
@@ -106,7 +109,9 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             print self
 
             # If we process the last item, then exit.
-            if self.requests_todo.empty() and self.link_items_output.empty():
+            if self.requests_todo.empty() and self.link_items_output.empty() \
+                    and (self.workings_ids_count == 0):
+                # TODO check all crawler threads are idle.
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)
 
@@ -135,6 +140,10 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             pass  # ignore peewee errors
         except:
             print "Unexpected error:", sys.exc_info()[0]
+            print """
+It shouldn't happen, please report this issue to developers.
+And they would fix it.
+            """
             raise
 
 

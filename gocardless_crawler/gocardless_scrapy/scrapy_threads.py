@@ -12,7 +12,8 @@ from .monitor_webui import MonitorWebui
 class ScrapyThreads(object):
 
     def crawler_worker_func(self):
-        def worker(master, wait_seconds):
+        def worker(master, worker_id):
+            wait_seconds = int(worker_id)
             thread_info = "[thread %s] " % threading.current_thread().name
             print thread_info + "starts ..."
 
@@ -26,7 +27,16 @@ class ScrapyThreads(object):
                 if master.requests_todo.qsize() > 0:
                     link_item = master.requests_todo.get()
                     if link_item is not None:
-                        master.process(link_item)
+                        # Mark the current processing item in a global status
+                        # And each crawler thread has their unique keys, so
+                        # there's no conflict.
+                        self.crawler_thread_to_link_map[worker_id] = link_item
+
+                        try:
+                            master.process(link_item)
+                        finally:
+                            # Whatever happend, always clear the status.
+                            self.crawler_thread_to_link_map[worker_id] = None
 
         return worker
 
@@ -85,11 +95,17 @@ class ScrapyThreads(object):
     def crawler_worker_threads_status(self):
         alive_threads = [t for t in self.crawler_worker_threads
                          if t.is_alive()]
+
         return {
             "total": len(self.crawler_worker_threads),
             "alive": len(alive_threads),
+            "working": self.workings_ids_count,
             "dead": len(self.crawler_worker_threads) - len(alive_threads)
         }
 
+    @property
+    def workings_ids_count(self):
+        return len(self.crawler_thread_to_link_map) - \
+            self.crawler_thread_to_link_map.values().count(None)
 
 __all__ = ['ScrapyThreads']
