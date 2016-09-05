@@ -54,10 +54,9 @@ class scrapy(object):
         self.debug = False
 
     def work(self):
-        LinkItem.load_previous_status()
+        self.links_total_counter = Counter(len(LinkItem.links_done()))
 
-        _links_total_counter = LinkItem.current_processed_links_count()
-        self.links_total_counter = Counter(_links_total_counter)
+        self.links_done = LinkItem.links_done()
 
         self.start_crawler_worker_threads()
         self.start_sync_db_worker_thread()
@@ -72,9 +71,9 @@ class scrapy(object):
 
     def put(self, request, force=False):
         """ Remove duplicated request.  """
-        is_done = LinkItem.is_link_processed(request.url)
+        is_done = request.url in self.links_done
         if (not force) and (not is_done):
-            self.requests_todo.put(request.url)
+            self.requests_todo.put(request)
             self.links_total_counter.increment()
         else:
             if self.debug:
@@ -153,7 +152,7 @@ class scrapy(object):
                "error size: %s\n" \
                "threads count:  %s\n"  \
                "links_total_counter: %s\n" % \
-               (LinkItem.unfinished_count(),
+               (self.requests_todo.qsize(),
                 1,
                 self.errors.qsize(),
                 threading.active_count(),
@@ -166,7 +165,7 @@ class scrapy(object):
                "error: %s\n" \
                "threads count:  %s\n"  \
                "links_total_counter: %s\n" % \
-               (LinkItem.read_all(),
+               (self.requests_todo.qsize(),
                 1,
                 self.inspect_queue(self.errors),
                 threading.active_count(),
