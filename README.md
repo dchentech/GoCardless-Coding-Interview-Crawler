@@ -188,3 +188,4 @@ TODO
 * sqlite performance
 * add more unittests
 * use asynchronous network api to improve crawler network speed
+* is https://gocardless.com/es-es/faq/panel-control/creacin-cobros a valid 404 page?
