@@ -17,6 +17,7 @@ from peewee import IntegrityError, OperationalError
 from .spider import Spider
 from .http_request import Request
 from .models import LinkItem, ErrorLog
+from .monitor_webui import MonitorWebui
 
 
 class scrapy(object):
@@ -256,16 +257,6 @@ class Counter(object):
 
     def __repr__(self):
         return str(self.val)
-
-
-class MonitorWebui(object):
-
-    def __init__(self, master):
-        self.master = master
-
-    @cherrypy.expose
-    def index(self):
-        return self.master.status().replace("\n", "<br/>")
 
 
 __all__ = ['scrapy', 'Request', 'LinkItem']
