@@ -125,8 +125,7 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             for item2 in self.crawler.parse(item):
                 self.continue_or_drop_item(item2)
         except (HTTPError, BadStatusLine, ) as e1:
-            msg = (item, e1,)
-            self.errors.put({"link": item.url, "error": msg})
+            self.errors.put({"link": item.url, "error": str(e1)})
         except (socket.timeout, socket.error, URLError, ):
             # NOTE URLError is alos timeout error.
             self.put_again(item)
