@@ -18,9 +18,10 @@ from .spider import Spider
 from .http_request import Request
 from .models import LinkItem, ErrorLog
 from .monitor_webui import MonitorWebui
+from .scrapy_status import ScrapyStatus
 
 
-class scrapy(object):
+class scrapy(ScrapyStatus):
     Spider = Spider
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
