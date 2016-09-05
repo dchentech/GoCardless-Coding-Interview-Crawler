@@ -16,7 +16,7 @@ import cherrypy
 from peewee import IntegrityError, OperationalError
 from .spider import Spider
 from .http_request import Request
-from .models import LinkItem
+from .models import LinkItem, ErrorLog
 
 
 class scrapy(object):
@@ -41,6 +41,10 @@ class scrapy(object):
     def __init__(self, crawler_recipe):
         self.crawler_recipe = crawler_recipe
 
+        # TODO insert errors into db
+
+        # NOTE all below BlockingQueue would be lost, if you kill the process.
+
         # TODO change below two API
         # Inserted from database and crawler workers
         self.requests_todo = BlockingQueue()
@@ -56,17 +60,14 @@ class scrapy(object):
         self.debug = False
 
     def work(self):
-        self.links_total_counter = Counter(len(LinkItem.links_done()))
-
         self.links_done = LinkItem.links_done()
 
+        self.resume_unfinished_requests()
         self.start_crawler_worker_threads()
-        self.start_sync_db_worker_thread()
+        self.sync_db_worker_thread = self.start_sync_db_worker_thread()
         self.fetch_init_links()
         self.start_monitor_webui()
         self.check_if_job_is_done()
-
-        print "errors: %s" % self.errors
 
     def put_again(self, request):
         self.put(request, force=True)
@@ -76,7 +77,6 @@ class scrapy(object):
         is_done = request.url in self.links_done
         if (not force) and (not is_done):
             self.requests_todo.put(request)
-            self.links_total_counter.increment()
         else:
             if self.debug:
                 print request.url + " is already in the queue, and maybe " \
@@ -84,10 +84,15 @@ class scrapy(object):
 
     def fetch_init_links(self):
         for url in self.crawler.start_urls:
-            self.put(Request(url, self.crawler.parse))
+            # always put start_urls
+            self.put_again(Request(url, self.crawler.parse))
         for request in self.crawler.start_requests():
             self.put(request)
         assert self.requests_todo.qsize() > 0
+
+    def resume_unfinished_requests(self):
+        for link in LinkItem.links_todo():
+            self.put(Request(link, self.crawler.parse))
 
     def check_if_job_is_done(self):
         while True:
@@ -115,6 +120,7 @@ class scrapy(object):
         t = threading.Thread(target=self.sync_db_worker_func(),
                              args=(self, ))
         t.start()
+        return t
 
     def sync_db_worker_func(self):
         def worker(master):
@@ -138,6 +144,12 @@ class scrapy(object):
                 msg = "synced %s records at this time ..." % (sync_count,)
                 print thread_info + msg
 
+                while not master.errors.empty():
+                    error_json = master.errors.get()
+                    if error_json is not None:
+                        ErrorLog.insert_item(error_json["link"],
+                                             error_json["error"])
+
         return worker
 
     def start_crawler_worker_threads(self):
@@ -158,33 +170,29 @@ class scrapy(object):
 
     def __repr__(self):
         return "\n\n==============================\n" \
-               "Current queue size: %s\n" \
-               "output size: %s\n" \
+               "requests_todo size: %s\n" \
+               "link_items_output size: %s\n" \
                "error size: %s\n" \
                "threads count:  %s\n"  \
-               "table count:  %s\n"  \
-               "links_total_counter: %s\n" % \
+               "table count:  %s\n" % \
                (self.requests_todo.qsize(),
-                1,
-                self.errors.qsize(),
+                self.link_items_output.qsize(),
+                ErrorLog.select().count(),
                 threading.active_count(),
-                LinkItem.select().count(),
-                self.links_total_counter,)
+                LinkItem.select().count(),)
 
     def status(self):
         return "\n\n==============================\n" \
-               "queue: %s\n" \
-               "output: %s\n" \
+               "requests_todo: %s\n" \
                "error: %s\n" \
+               "sync_db_worker_thread.isAlive(): %s\n" \
                "threads count:  %s\n"  \
-               "table count:  %s\n"  \
-               "links_total_counter: %s\n" % \
+               "table count:  %s\n" % \
                (self.requests_todo.qsize(),
-                1,
-                self.inspect_queue(self.errors),
+                ErrorLog.select().count(),
+                self.sync_db_worker_thread.isAlive(),
                 threading.active_count(),
-                LinkItem.select().count(),
-                self.links_total_counter,)
+                LinkItem.select().count(),)
 
     def process(self, item):
         print "processing item: ", item
@@ -193,7 +201,7 @@ class scrapy(object):
                 self.continue_or_drop_item(item2)
         except (HTTPError, BadStatusLine, ) as e1:
             msg = (item, e1,)
-            self.errors.put(msg)
+            self.errors.put({"link": item.url, "error": msg})
         except (socket.timeout, socket.error, URLError, ):
             # NOTE URLError is alos timeout error.
             self.put_again(item)

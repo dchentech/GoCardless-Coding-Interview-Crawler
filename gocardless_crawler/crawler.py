@@ -26,16 +26,16 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             yield Request(url, self.parse)
 
     def parse(self, response):
-        yield self.parse_gocardless_static_assets(response)
+        item_json = self.parse_gocardless_static_assets(response)
+        yield item_json
 
-        for href in response.css('a'):
-            full_url = response.urljoin(href.xpath("@href").extract_first())
+        for full_url in item_json["assets"]["link"]:
             yield Request(
                 full_url,
                 callback=self.parse_gocardless_static_assets)
 
     def parse_gocardless_static_assets(self, response):
-        assets = {"image": [], "css": [], "js": []}
+        assets = {"image": [], "css": [], "js": [], "link": []}
         result = {"link": response.url, "assets": assets}
 
         for img in response.css("img"):
@@ -54,6 +54,10 @@ class GoCardlessWebsiteCrawler(scrapy.Spider):
             if not path_js:  # skip text/javascript
                 continue
             assets["js"].append(path_js)
+
+        for href in response.css('a'):
+            full_url = response.urljoin(href.xpath("@href").extract_first())
+            assets["link"].append(full_url)
 
         return result
 

@@ -19,7 +19,6 @@ class LinkItem(Model):
     3. Crawler doesn't require transactional consistency.
        It could re-process any item at any time.
     """
-
     id = IntegerField(index=True, primary_key=True)
     link = CharField(unique=True)
     assets = TextField()
@@ -57,9 +56,20 @@ class LinkItem(Model):
         cls.create(link=_link, assets=json.dumps(_assets))
 
 
+class ErrorLog(Model):
+    id = IntegerField(index=True, primary_key=True)
+    link = CharField(unique=False)
+    error = TextField()
+
+    @classmethod
+    def insert_item(cls, _link, _error):
+        cls.create(link=_link, error=_error)
+
 db.connect()
 if not LinkItem.table_exists():
     LinkItem.create_table()
+if not ErrorLog.table_exists():
+    ErrorLog.create_table()
 
 
-__all__ = ["LinkItem"]
+__all__ = ["LinkItem", "ErrorLog"]
