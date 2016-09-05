@@ -60,16 +60,16 @@ So it still needs some works to do about this.
 
 How to run it?
 ----------------------------------
-Run in a Docker
-
-```bash
-./run.sh
-```
-
-Or run in local
+Run in local
 
 ```bash
 SCRAPY_VENDOR=mock ./docker-entrypoint.sh
+```
+
+Or run in a Docker
+
+```bash
+./run.sh
 ```
 
 And please check the result in `output/result.json` file.

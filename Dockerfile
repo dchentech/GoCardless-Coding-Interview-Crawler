@@ -1,5 +1,6 @@
 FROM ubuntu:14.04
 
+ENV SCRAPY_VENDOR mock
 
 RUN apt-get update -y
 RUN apt-get install -y python python-pip python-dev libxml2-dev libxslt-dev libffi-dev libssl-dev mysql-server libmysqlclient-dev
