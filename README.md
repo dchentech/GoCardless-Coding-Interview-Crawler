@@ -148,6 +148,14 @@ Example result data structure
 
 #### result.json.error_log
 ```json
+[
+{
+"error": "HTTP Error 404: Not Found",
+"id": 1,
+"link": "https://gocardless.com/es-es/faq/panel-control/creacin-cobros"
+},
+...
+]
 ```
 
 Performance report [mock version]
