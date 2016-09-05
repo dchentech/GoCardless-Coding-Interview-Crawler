@@ -34,7 +34,7 @@ class ScrapyThreads(object):
 
                         try:
                             master.process(link_item)
-                        finally:
+                        except:
                             # Whatever happend, always clear the status.
                             self.crawler_thread_to_link_map[worker_id] = None
 
