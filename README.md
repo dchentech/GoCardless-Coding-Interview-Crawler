@@ -66,6 +66,12 @@ Run in a Docker
 ./run.sh
 ```
 
+Or run in local
+
+```bash
+SCRAPY_VENDOR=mock ./docker-entrypoint.sh
+```
+
 And please check the result in `output/result.json` file.
 
 
