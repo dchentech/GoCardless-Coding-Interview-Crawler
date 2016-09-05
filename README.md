@@ -72,8 +72,8 @@ And please check the result in `output/result.json` file.
 How to run unittest?
 ----------------------------------
 ```bash
-pip install nose
-export DATABASE_NAME="crawler_gocardless_test.db"; rm -f $DATABASE_NAME && nosetests
+pip install tox
+tox
 ```
 
 
@@ -116,3 +116,4 @@ TODO
 * dead link
 * skip http://gocardless.com/guides/examples/sepa-mandate.pdf
 * sqlite performance
+* add more unittests

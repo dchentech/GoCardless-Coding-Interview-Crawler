@@ -4,9 +4,15 @@ import os
 import urllib2
 from bs4 import BeautifulSoup
 
-if os.getenv('USE_GOCARDLESS_VERSION_SCRAPY') == "true":
+if os.getenv('SCRAPY_VENDOR') is None:
+    msg = """
+Please export your \"\$SCRAPY_VENDOR\" shell environment variable."
+Available Scrapy Implementation are \"scrapy\" and \"mock\"."""
+    raise Exception(msg)
+
+if os.getenv('SCRAPY_VENDOR') == "mock":
     from .gocardless_scrapy import scrapy, Request
-else:
+elif os.getenv('SCRAPY_VENDOR') == "scrapy":
     import scrapy
     from scrapy.http.request import Request
 

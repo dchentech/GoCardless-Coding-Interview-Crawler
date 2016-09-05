@@ -4,8 +4,8 @@ set -e
 
 export RESULT_JSON="output/result.json"
 export SCRAPY_OUTPUT_JSON="output/scrapy_gocardless.json"
-export USE_GOCARDLESS_VERSION_SCRAPY="true"
 export DATABASE_NAME="crawler_gocardless_production.db"
+export SCRAPY_VENDOR=$SCRAPY_VENDOR
 
 
 # Clean previous result
@@ -17,7 +17,7 @@ python setup.py install
 
 
 # Run spider to collect links data
-if [[ $USE_GOCARDLESS_VERSION_SCRAPY == "true" ]]; then
+if [[ $SCRAPY_VENDOR == "mock" ]]; then
   echo "Use GoCardless demo version of Scrapy ..."
   ./bin/gocardless_scrapy.py
   ./bin/dump_result.py $RESULT_JSON

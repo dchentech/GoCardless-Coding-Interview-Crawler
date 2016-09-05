@@ -2,7 +2,7 @@
 # -*-coding:utf-8-*-
 
 import os
-os.environ["USE_GOCARDLESS_VERSION_SCRAPY"] = "true"
+os.environ["SCRAPY_VENDOR"] = "mock"
 from gocardless_crawler import GoCardlessWebsiteCrawler, scrapy
 
 scrapy.run(GoCardlessWebsiteCrawler)
