@@ -76,7 +76,9 @@ class scrapy(object):
         """ Remove duplicated request.  """
         is_done = request.url in self.links_done
         if (not force) and (not is_done):
-            self.requests_todo.put(request)
+            # Ignore other domain urls
+            if Request.is_gocardless(request):
+                self.requests_todo.put(request)
         else:
             if self.debug:
                 print request.url + " is already in the queue, and maybe " \
@@ -163,9 +165,7 @@ class scrapy(object):
 
     def continue_or_drop_item(self, item2):
         if isinstance(item2, Request):
-            # Ignore other domain urls
-            if Request.is_gocardless(item2):
-                self.put(item2)
+            self.put(item2)
         else:
             self.link_items_output.put(item2)
 
