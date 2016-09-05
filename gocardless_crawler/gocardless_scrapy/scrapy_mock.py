@@ -12,25 +12,21 @@ from httplib import BadStatusLine
 import socket
 import cherrypy
 from peewee import IntegrityError, OperationalError
-from .spider import Spider
 from .http_request import Request
 from .models import LinkItem, ErrorLog
 from .monitor_webui import MonitorWebui
 from .scrapy_status import ScrapyStatus
+from .scrapy_threads import ScrapyThreads
+from .conf import thread_count, thread_check_queue_finished_seconds
 
-
-class scrapy(ScrapyStatus):
-    Spider = Spider
-
-    # One cpu, 10 threads = 30%, 20 threads = 107%
-    thread_count = 50
-
-    thread_sleep_seconds = 10 * 0.001
-    thread_check_queue_finished_seconds = 3
-    thread_sync_db_wait_seconds = 5
-    thread_sync_db_max_records_one_time = 100
-
-    db_name = "gocardless"
+class scrapy(ScrapyStatus, ScrapyThreads):
+    """
+    A mini mock scrapy framework.
+    """
+    class Spider:
+        """
+        I'm a fake mock class
+        """
 
     @classmethod
     def run(cls, crawler_recipe):
@@ -107,7 +103,7 @@ class scrapy(ScrapyStatus):
 
     def check_if_job_is_done(self):
         while True:
-            time.sleep(scrapy.thread_check_queue_finished_seconds)
+            time.sleep(thread_check_queue_finished_seconds)
 
             print self
 
@@ -122,40 +118,9 @@ class scrapy(ScrapyStatus):
         t.start()
         return t
 
-    def sync_db_worker_func(self):
-        def worker(master):
-            thread_info = "[thread sync_db_worker %s] " % \
-                          threading.current_thread().name
-            print thread_info + "starts ..."
-
-            while True:
-                time.sleep(scrapy.thread_sync_db_wait_seconds)
-
-                sync_count = 0
-                print thread_info + "begin sync ..."
-                while not master.link_items_output.empty():
-                    link_item_json = master.link_items_output.get()
-                    if link_item_json is not None:
-                        LinkItem.insert_item(link_item_json["link"],
-                                             link_item_json["assets"])
-                        sync_count += 1
-                        if (sync_count >
-                                self.thread_sync_db_max_records_one_time):
-                            break
-                msg = "synced %s records at this time ..." % (sync_count,)
-                print thread_info + msg
-
-                while not master.errors.empty():
-                    error_json = master.errors.get()
-                    if error_json is not None:
-                        ErrorLog.insert_item(error_json["link"],
-                                             error_json["error"])
-
-        return worker
-
     def start_crawler_worker_threads(self):
-        print "Create %s threads ..." % self.thread_count
-        for idx in xrange(self.thread_count):
+        print "Create %s threads ..." % thread_count
+        for idx in xrange(thread_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=self.crawler_worker_func(),
                                  args=(self, idx + 1, ))
@@ -198,25 +163,6 @@ class scrapy(ScrapyStatus):
         except:
             print "Unexpected error:", sys.exc_info()[0]
             raise
-
-    def crawler_worker_func(self):
-        def worker(master, wait_seconds):
-            thread_info = "[thread %s] " % threading.current_thread().name
-            print thread_info + "starts ..."
-
-            # Don't start too fast.
-            time.sleep(wait_seconds)
-
-            while True:
-                time.sleep(scrapy.thread_sleep_seconds)
-
-                link_item = None
-                if master.requests_todo.qsize() > 0:
-                    link_item = master.requests_todo.get()
-                    if link_item is not None:
-                        master.process(link_item)
-
-        return worker
 
     def start_monitor_webui(self):
         def webui(self):
