@@ -11,7 +11,7 @@ from urlparse import urlparse
 class Request(object):
 
     def __init__(self, url, func=None, callback=lambda: None):
-        self.url = url.rstrip("/")
+        self.url = url.rstrip("/").strip()
         self.url = self.url.split("#")[0]  # remove hash part
         self.url = self.url.encode('ascii', 'ignore').decode('ascii')
 
@@ -21,7 +21,13 @@ class Request(object):
         self.network_method = [read_via_pycurl, read_via_urllib2][0]
 
     def read_html(self):
-        content = self.network_method(self.url)
+        if self.url.startswith("http://"):
+            # TODO pycurl couldn't handle "https://" pages, due to ssl
+            # installation issue.
+            content = read_via_pycurl(self.url)
+        else:
+            content = read_via_urllib2(self.url)
+
         self.html = content.decode('utf-8', 'ignore')
 
     def __repr__(self):

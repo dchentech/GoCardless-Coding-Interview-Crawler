@@ -13,6 +13,12 @@ rm -f $SCRAPY_OUTPUT_JSON
 rm -f $RESULT_JSON
 
 
+# TODO Fix me
+# http://stackoverflow.com/questions/21096436/ssl-backend-error-when-using-openssl
+# pip uninstall -y pycurl || true
+# export PYCURL_SSL_LIBRARY=openssl
+# pip install --compile pycurl
+
 python setup.py install
 
 

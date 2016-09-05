@@ -108,4 +108,8 @@ class ScrapyThreads(object):
         return len(self.crawler_thread_to_link_map) - \
             self.crawler_thread_to_link_map.values().count(None)
 
+    @property
+    def workings_items(self):
+        return [i.url for i in self.crawler_thread_to_link_map.values() if i]
+
 __all__ = ['ScrapyThreads']

@@ -139,7 +139,7 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             # they write data to Queue.
             pass  # ignore peewee errors
         except:
-            print "Unexpected error:", sys.exc_info()[0]
+            print "Unexpected error:", str(sys.exc_info())
             print """
 It shouldn't happen, please report this issue to developers.
 And they would fix it.

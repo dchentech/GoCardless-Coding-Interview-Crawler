@@ -1,6 +1,7 @@
 # -*-coding:utf-8-*-
 
 import cgi
+import json
 from .models import LinkItem, ErrorLog
 
 
@@ -44,7 +45,11 @@ class ScrapyStatus():
 
     @property
     def all_status(self):
-        return self.process_status + \
+        working_info = self.workings_items
+        return "==== working items[" + str(len(working_info)) + "]\n" + \
+            json.dumps(working_info) + \
+            "\n\n\n" + \
+            self.process_status + \
             "\n\n\n" + \
             "==== Table[LinkItem] recent records" + \
             join_lines(self.master.table_LinkItem_lastest_records) + \
