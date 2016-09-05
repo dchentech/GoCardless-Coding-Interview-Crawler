@@ -4,7 +4,7 @@ import threading
 import time
 import cherrypy
 from .conf import thread_sleep_seconds, thread_sync_db_wait_seconds, \
-    thread_sync_db_max_records_one_time, thread_count
+    thread_sync_db_max_records_one_time, thread_crawler_count
 from .models import LinkItem, ErrorLog
 from .monitor_webui import MonitorWebui
 
@@ -73,14 +73,23 @@ class ScrapyThreads(object):
         return t
 
     def start_crawler_worker_threads(self):
-        print "Create %s threads ..." % thread_count
+        print "Create %s threads ..." % thread_crawler_count
         self.crawler_worker_threads = []
-        for idx in xrange(thread_count):
+        for idx in xrange(thread_crawler_count):
             print "create thread[%s] ..." % (idx + 1)
             t = threading.Thread(target=self.crawler_worker_func(),
                                  args=(self, idx + 1, ))
             t.start()
             self.crawler_worker_threads.append(t)
+
+    def crawler_worker_threads_status(self):
+        alive_threads = [t for t in self.crawler_worker_threads
+                         if t.is_alive()]
+        return {
+            "total": len(self.crawler_worker_threads),
+            "alive": len(alive_threads),
+            "dead": len(self.crawler_worker_threads) - len(alive_threads)
+        }
 
 
 __all__ = ['ScrapyThreads']

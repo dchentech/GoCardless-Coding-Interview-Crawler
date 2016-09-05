@@ -1,6 +1,5 @@
 # -*-coding:utf-8-*-
 
-import threading
 import cgi
 from .models import LinkItem, ErrorLog
 
@@ -28,10 +27,11 @@ class ScrapyStatus():
 
     @property
     def threads_status(self):
+        info = self.crawler_worker_threads_status()
         return [
             "sync_db_worker_thread.isAlive(): " +
             str(self.master.sync_db_worker_thread.isAlive()),
-            "threads count:  " + str(threading.active_count()),
+            "Crawler threads info " + str(info) + "\n",
         ]
 
     @property
