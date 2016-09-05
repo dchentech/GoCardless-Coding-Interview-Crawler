@@ -19,7 +19,7 @@ setup(
         'peewee',
     ],
     scripts=[
-        'bin/clean_result.py',
+        'bin/dump_result.py',
         'bin/gocardless_scrapy.py',
     ],
 )

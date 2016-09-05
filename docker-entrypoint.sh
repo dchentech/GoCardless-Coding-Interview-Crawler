@@ -19,11 +19,9 @@ python setup.py install
 # Run spider to collect links data
 if [[ $USE_GOCARDLESS_VERSION_SCRAPY == "true" ]]; then
   echo "Use GoCardless demo version of Scrapy ..."
-  ./bin/gocardless_scrapy.py --output $SCRAPY_OUTPUT_JSON
+  ./bin/gocardless_scrapy.py
+  ./bin/dump_result.py $SCRAPY_OUTPUT_JSON
 else
   echo "Use https://github.com/scrapy/scrapy ..."
   scrapy runspider gocardless_crawler/crawler.py --output $SCRAPY_OUTPUT_JSON
 fi
-
-# Generate the report
-./bin/clean_result.py $SCRAPY_OUTPUT_JSON $RESULT_JSON

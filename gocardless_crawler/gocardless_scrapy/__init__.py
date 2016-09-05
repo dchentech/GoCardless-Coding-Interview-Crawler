@@ -247,4 +247,4 @@ class Counter(object):
         return str(self.val)
 
 
-__all__ = ['scrapy', 'Request', 'LinkItem']
+__all__ = ['scrapy', 'Request', 'LinkItem', "ErrorLog"]
