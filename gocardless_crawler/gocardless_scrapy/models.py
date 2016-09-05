@@ -53,7 +53,13 @@ class LinkItem(Model):
 
     @classmethod
     def insert_item(cls, _link, _assets):
-        cls.create(link=_link, assets=json.dumps(_assets))
+        query = list(cls.select().where(cls.link == _link).limit(1))
+        if query:
+            item = query[0]
+        else:
+            item = cls(link=_link)
+        item.assets = json.dumps(_assets)
+        item.save()
 
 
 class ErrorLog(Model):

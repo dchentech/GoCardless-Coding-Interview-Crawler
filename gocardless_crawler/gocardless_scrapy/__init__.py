@@ -132,6 +132,7 @@ class scrapy(object):
                 time.sleep(scrapy.thread_sync_db_wait_seconds)
 
                 sync_count = 0
+                print thread_info + "begin sync ..."
                 while not master.link_items_output.empty():
                     link_item_json = master.link_items_output.get()
                     if link_item_json is not None:
