@@ -11,8 +11,10 @@ from gocardless_crawler.gocardless_scrapy.models import LinkItem
 
 class TestGoCardlessScrapy(unittest.TestCase):
 
+    test_url = "https://gocardless.com/"
+
     def test_request(self):
-        response = Request("https://gocardless.com/", lambda: True)
+        response = Request(self.test_url, lambda: True)
         self.assertTrue("GoCardless" in response.css("title").extract_first())
 
     def test_LinkItem(self):
@@ -42,3 +44,8 @@ class TestGoCardlessScrapy(unittest.TestCase):
         self.assertFalse("/b" in LinkItem.links_done())
 
         clear_dbs()
+
+    def test_Request(self):
+        request = Request(self.test_url)
+        request.read_html()
+        self.assertTrue("</html>" in request.html)

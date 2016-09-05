@@ -17,6 +17,7 @@ setup(
         'beautifulsoup4',
         'cherrypy',
         'peewee',
+        'pycurl',
     ],
     scripts=[
         'bin/dump_result.py',

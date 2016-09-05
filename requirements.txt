@@ -6,3 +6,4 @@ beautifulsoup4
 
 cherrypy
 peewee
+pycurl

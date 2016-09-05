@@ -2,6 +2,8 @@
 
 from parsel import Selector
 import urllib2
+import pycurl
+from StringIO import StringIO
 from six.moves.urllib.parse import urljoin as _urljoin
 from urlparse import urlparse
 
@@ -16,8 +18,10 @@ class Request(object):
         self.func = func
         self.callback = callback
 
+        self.network_method = [read_via_pycurl, read_via_urllib2][0]
+
     def read_html(self):
-        content = urllib2.urlopen(self.url).read()
+        content = self.network_method(self.url)
         self.html = content.decode('utf-8', 'ignore')
 
     def __repr__(self):
@@ -38,3 +42,21 @@ class Request(object):
     def is_gocardless(cls, request):
         parsed_uri = urlparse(request.url)
         return "gocardless" in parsed_uri.netloc.lower()
+
+
+def read_via_urllib2(url):
+    return urllib2.urlopen(url).read()
+
+def read_via_pycurl(url):
+    """ http://pycurl.io/docs/latest/quickstart.html """
+    _buffer = StringIO()
+    c = pycurl.Curl()
+    c.setopt(c.URL, url)
+    c.setopt(c.WRITEDATA, _buffer)
+    c.perform()
+    c.close()
+
+    body = _buffer.getvalue()
+    # Body is a string in some encoding.
+    # In Python 2, we can print it without knowing what the encoding is.
+    return body
