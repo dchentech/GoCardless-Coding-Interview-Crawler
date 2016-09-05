@@ -104,10 +104,10 @@ Example result data structure
 
 Performance report
 ----------------------------------
-| Section       | Value         | Script                                                                          |
-|---------------|:-------------:|--------------------------------------------------------------------------------:|
-| Page count    | 604           | ruby -e 'require "json"; puts JSON.parse(File.read("output/result.json")).size' |
-| Time cost     | 25.6 seconds  | time ./run.sh                                                                   |
+| Section       | Value         | Script                                                                                     |
+|---------------|:-------------:|-------------------------------------------------------------------------------------------:|
+| Page count    | 604           | ruby -e 'require "json"; puts JSON.parse(File.read("output/scrapy_gocardless.json")).size' |
+| Time cost     | 25.6 seconds  | time ./run.sh                                                                              |
 
 
 TODO
