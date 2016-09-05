@@ -1,5 +1,6 @@
 # -*-coding:utf-8-*-
 
+import os
 import time
 import json
 from peewee import MySQLDatabase, SqliteDatabase
@@ -27,29 +28,39 @@ class PeeweeUtils(object):
 
 class SingleInstance(object):
 
+    def __init__(self):
+        self.conn = None
+
     def use_db(self, db_type, db_name):
+        print "use db_type: %s, db_name: %s" % (db_type, db_name,)
         self.db_type = db_type
         self.db_name = db_name
 
     @property
     def db(self):
+        if self.conn is not None:
+            return self.conn
+
         # Thread-safe
         if self.db_type == "mysql":
-            return MySQLDatabase("gocardless",
-                                 # host="192.168.99.100",
-                                 host="mysql",
-                                 user="root",
-                                 passwd="gocardless",)
+            self.conn = MySQLDatabase(self.db_name,
+                                      # host="mysql",
+                                      host="192.168.99.100",
+                                      user="root",
+                                      passwd="gocardless",)
         if self.db_type == "sqlite":
-            return SqliteDatabase(self.db_name, threadlocals=True)
+            self.conn = SqliteDatabase(self.db_name, threadlocals=True)
+
+        return self.conn
 
 config = SingleInstance()
+config.use_db("mysql", "gocardless")
 
 
 class CommonAPI():
 
     class Meta:
-        database = None
+        database = config.db
     meta_cls = Meta
 
     @classmethod

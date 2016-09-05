@@ -8,6 +8,7 @@ import threading
 from multiprocessing import RawValue, Lock
 import time
 from urllib2 import HTTPError, URLError
+from httplib import BadStatusLine
 import socket
 import cherrypy
 from peewee import IntegrityError, OperationalError
@@ -24,12 +25,12 @@ class scrapy(object):
     Spider = Spider
 
     # One cpu, 10 threads = 30%, 20 threads = 107%
-    thread_count = 90
+    thread_count = 50
 
     thread_sleep_seconds = 10 * 0.001
     thread_check_queue_finished_seconds = 3
 
-    db_name = "gocardless.sqlite"
+    db_name = "gocardless"
 
     @classmethod
     def run(cls, crawler_recipe):
@@ -158,7 +159,7 @@ class scrapy(object):
         try:
             for item2 in self.crawler.parse(item):
                 self.continue_or_drop_item(item2)
-        except (HTTPError, ) as e1:
+        except (HTTPError, BadStatusLine, ) as e1:
             msg = (item, e1,)
             self.errors.put(msg)
         except (socket.timeout, socket.error, URLError, ):
