@@ -34,6 +34,12 @@ class MonitorWebui(object):
             "threads count:  " + str(threading.active_count()),
         ]
 
+        def select_lastest_records(model):
+            records = list(model.select().order_by(model.id.desc()).limit(10))
+            return [str(i) for i in records]
+        table_LinkItem_lastest_records = select_lastest_records(LinkItem)
+        table_ErrorLog_lastest_records = select_lastest_records(ErrorLog)
+
         return "==== memory status" + \
                join_lines(memory_status) + \
                "\n\n\n" + \
@@ -41,4 +47,10 @@ class MonitorWebui(object):
                join_lines(database_status) + \
                "\n\n\n" + \
                "==== threads status" + \
-               join_lines(threads_status)
+               join_lines(threads_status) + \
+               "\n\n\n" + \
+               "==== Table[LinkItem] recent records" + \
+               join_lines(table_LinkItem_lastest_records) + \
+               "\n\n\n" + \
+               "==== Table[ErrorLog] recent records" + \
+               join_lines(table_ErrorLog_lastest_records)

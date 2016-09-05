@@ -61,6 +61,10 @@ class LinkItem(Model):
         item.assets = json.dumps(_assets)
         item.save()
 
+    def __repr__(self):
+        return "<LinkItem#%s link=\"%s\", assets=\"%s\">" % \
+               (self.id, self.link, self.assets)
+
 
 class ErrorLog(Model):
     id = IntegerField(index=True, primary_key=True)
@@ -70,6 +74,10 @@ class ErrorLog(Model):
     @classmethod
     def insert_item(cls, _link, _error):
         cls.create(link=_link, error=_error)
+
+    def __repr__(self):
+        return "<ErrorLog#%s link=\"%s\", error=\"%s\">" % \
+               (self.id, self.link, self.error)
 
 db.connect()
 if not LinkItem.table_exists():
