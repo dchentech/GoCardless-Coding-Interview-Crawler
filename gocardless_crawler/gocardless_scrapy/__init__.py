@@ -151,11 +151,13 @@ class scrapy(object):
                "output size: %s\n" \
                "error size: %s\n" \
                "threads count:  %s\n"  \
+               "table count:  %s\n"  \
                "links_total_counter: %s\n" % \
                (self.requests_todo.qsize(),
                 1,
                 self.errors.qsize(),
                 threading.active_count(),
+                LinkItem.select().count(),
                 self.links_total_counter,)
 
     def status(self):
@@ -164,11 +166,13 @@ class scrapy(object):
                "output: %s\n" \
                "error: %s\n" \
                "threads count:  %s\n"  \
+               "table count:  %s\n"  \
                "links_total_counter: %s\n" % \
                (self.requests_todo.qsize(),
                 1,
                 self.inspect_queue(self.errors),
                 threading.active_count(),
+                LinkItem.select().count(),
                 self.links_total_counter,)
 
     def process(self, item):

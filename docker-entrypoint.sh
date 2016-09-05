@@ -5,6 +5,7 @@ set -e
 export RESULT_JSON="output/result.json"
 export SCRAPY_OUTPUT_JSON="output/scrapy_gocardless.json"
 export USE_GOCARDLESS_VERSION_SCRAPY="true"
+export DATABASE_NAME="crawler_gocardless_production.db"
 
 
 # Clean previous result

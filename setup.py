@@ -16,7 +16,6 @@ setup(
         'Scrapy',
         'beautifulsoup4',
         'cherrypy',
-        'MySQL-python',
         'peewee',
     ],
     scripts=[
