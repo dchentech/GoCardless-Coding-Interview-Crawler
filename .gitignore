@@ -10,3 +10,4 @@ gocardless_crawler.egg-info/
 *.txt
 *.sqlite
 *.error_log
+*.png
