@@ -37,6 +37,10 @@ class ScrapyThreads(object):
                         except:
                             # Whatever happend, always clear the status.
                             self.crawler_thread_to_link_map[worker_id] = None
+                        finally:
+                            # TODO need fix it
+                            # shall we catch all exceptions here?
+                            self.crawler_thread_to_link_map[worker_id] = None
 
         return worker
 
