@@ -56,7 +56,7 @@ The IO storage & flow is:
   start links and previous unfinished links. And tens of crawler worker
   threads would **read** and **write** them, (Locking in memory maybe
   very fast).
-3. `self.link_items_output.Queue` and `errors.Queue`, tens of crawler worker threads would
+3. `link_items_output.Queue` and `errors.Queue`, tens of crawler worker threads would
    **write** records to it, and sync data thread would **read** them and
    write them to sqlite.
 
