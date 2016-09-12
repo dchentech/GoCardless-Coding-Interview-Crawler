@@ -21,6 +21,12 @@ The important points from requirements
 * robustness, performance, testing, and code structure & layout.
 
 
+WebUI screenshot
+----------------------------------
+![crawler-gocardless-webui](https://raw.githubusercontent.com/mvj3/scrapy-mock/master/crawler-gocardless-webui.png)
+
+
+
 Design decisions
 ----------------------------------
 #### Why does this coding interview implement scrapy API?
