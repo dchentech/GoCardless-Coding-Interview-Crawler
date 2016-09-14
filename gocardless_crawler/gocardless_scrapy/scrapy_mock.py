@@ -111,6 +111,7 @@ class scrapy(ScrapyStatus, ScrapyThreads):
             # If we process the last item, then exit.
             if self.requests_todo.empty() and self.link_items_output.empty() \
                     and (self.workings_ids_count == 0):
+                time.sleep(10)  # TODO please fix workings_ids_count
                 # TODO check all crawler threads are idle.
                 print "[thread %s] exits ..." % threading.current_thread().name
                 os._exit(0)

@@ -109,8 +109,13 @@ class ScrapyThreads(object):
 
     @property
     def workings_ids_count(self):
+        # TODO fix me
+        return 0
+
+        """
         return len(self.crawler_thread_to_link_map) - \
             self.crawler_thread_to_link_map.values().count(None)
+        """
 
     @property
     def workings_items(self):
